@@ -1,0 +1,47 @@
+<odoo>
+
+    <record id="action_crypto_payment_provider" model="ir.actions.act_window">
+        <field name="name">Crypto Payment Providers</field>
+        <field name="res_model">payment.provider</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('code','=','crypto')]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new payment provider
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_crypto_transaction_root" name="Crypto APIS" sequence="10" web_icon="crypto_payment_sync,static/description/icon.png"/>
+
+    <menuitem id="menu_crypto_provide" name="Crypto Payment Providers" parent="menu_crypto_transaction_root"
+              action="action_crypto_payment_provider" sequence="10"/>
+
+    <menuitem id="menu_crypto_transaction" name="Transactions" parent="menu_crypto_transaction_root"
+               sequence="20"/>
+
+    <menuitem id="menu_crypto_config" name="Configuration" parent="menu_crypto_transaction_root" sequence="100"/>
+
+    <menuitem id="menu_crypto_blockchain" name="Blockchains" parent="menu_crypto_config"
+              action="action_crypto_blockchain" sequence="10"/>
+
+    <menuitem id="menu_crypto_network" name="Networks" parent="menu_crypto_config"
+              action="action_crypto_network" sequence="20"/>
+
+    <menuitem id="menu_crypto_wallet" name="Wallets" parent="menu_crypto_config"
+          action="action_crypto_wallet" sequence="30"/>
+
+    <menuitem id="menu_crypto_wallet_address" name="Wallet Addresses" parent="menu_crypto_config"
+          action="action_crypto_wallet_address" sequence="40"/>
+
+    <menuitem id="menu_crypto_wallet_address_event" name="Wallet Address Events" parent="menu_crypto_config"
+          action="action_crypto_wallet_address_event" sequence="50"/>
+
+    <menuitem id="menu_crypto_evm_transactions" name="EVM Transactions" parent="menu_crypto_transaction"
+          action="action_crypto_transaction_evm" sequence="10"/>
+
+    <menuitem id="menu_crypto_currencies" name="Currencies" parent="menu_crypto_config"
+              action="base.action_currency_form" sequence="60"/>
+
+
+</odoo>

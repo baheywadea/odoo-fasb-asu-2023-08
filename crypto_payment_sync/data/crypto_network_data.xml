@@ -1,0 +1,93 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Ethereum Networks -->
+        <record id="network_ethereum_mainnet" model="crypto.network">
+            <field name="name">Ethereum Mainnet</field>
+            <field name="technical_name">mainnet</field>
+            <field name="chain_id">1</field>
+            <field name="rpc_url">https://mainnet.infura.io/v3/YOUR_PROJECT_ID</field>
+            <field name="blockchain_id" ref="blockchain_ethereum"/>
+<!--            <field name="currency_code">ETH</field>-->
+        </record>
+        <record id="network_ethereum_goerli" model="crypto.network">
+            <field name="name">Ethereum Goerli Testnet</field>
+            <field name="technical_name">goerli</field>
+            <field name="chain_id">5</field>
+            <field name="rpc_url">https://goerli.infura.io/v3/YOUR_PROJECT_ID</field>
+            <field name="blockchain_id" ref="blockchain_ethereum"/>
+
+<!--            <field name="currency_code">ETH</field>-->
+        </record>
+
+        <!-- BNB Smart Chain -->
+        <record id="network_bsc_mainnet" model="crypto.network">
+            <field name="name">BNB Smart Chain Mainnet</field>
+            <field name="technical_name">mainnet</field>
+            <field name="chain_id">56</field>
+            <field name="rpc_url">https://bsc-dataseed.binance.org/</field>
+            <field name="blockchain_id" ref="blockchain_bnb"/>
+        </record>
+        <record id="network_bsc_testnet" model="crypto.network">
+            <field name="name">BNB Smart Chain Testnet</field>
+            <field name="technical_name">bnb</field>
+            <field name="chain_id">97</field>
+            <field name="rpc_url">https://data-seed-prebsc-1-s1.binance.org:8545/</field>
+            <field name="blockchain_id" ref="blockchain_bnb"/>
+        </record>
+
+        <!-- Polygon -->
+        <record id="network_polygon_mainnet" model="crypto.network">
+            <field name="name">Polygon Mainnet</field>
+            <field name="technical_name">polygon</field>
+            <field name="chain_id">137</field>
+            <field name="rpc_url">https://polygon-rpc.com</field>
+            <field name="blockchain_id" ref="blockchain_polygon"/>
+        </record>
+
+        <!-- Avalanche -->
+        <record id="network_avalanche_c" model="crypto.network">
+            <field name="name">Avalanche C-Chain</field>
+            <field name="technical_name">avalanche</field>
+            <field name="chain_id">43114</field>
+            <field name="rpc_url">https://api.avax.network/ext/bc/C/rpc</field>
+            <field name="blockchain_id" ref="blockchain_avalanche"/>
+        </record>
+
+        <!-- Arbitrum -->
+        <record id="network_arbitrum_one" model="crypto.network">
+            <field name="name">Arbitrum One</field>
+            <field name="technical_name">arbitrum</field>
+            <field name="chain_id">42161</field>
+            <field name="rpc_url">https://arb1.arbitrum.io/rpc</field>
+            <field name="blockchain_id" ref="blockchain_arbitrum"/>
+        </record>
+
+        <!-- Optimism -->
+        <record id="network_optimism_mainnet" model="crypto.network">
+            <field name="name">Optimism Mainnet</field>
+            <field name="technical_name">optimism</field>
+            <field name="chain_id">10</field>
+            <field name="rpc_url">https://mainnet.optimism.io</field>
+            <field name="blockchain_id" ref="blockchain_optimism"/>
+        </record>
+
+        <!-- Base -->
+        <record id="network_base_mainnet" model="crypto.network">
+            <field name="name">Base Mainnet</field>
+            <field name="technical_name">mainnet</field>
+            <field name="chain_id">8453</field>
+            <field name="rpc_url">https://mainnet.base.org</field>
+            <field name="blockchain_id" ref="blockchain_base"/>
+        </record>
+
+        <record id="network_ethereum_sepolia" model="crypto.network">
+            <field name="name">Ethereum Sepolia Testnet</field>
+            <field name="technical_name">sepolia</field>
+            <field name="chain_id">11155111</field>
+            <field name="rpc_url">https://sepolia.infura.io/v3/YOUR_PROJECT_ID</field>
+            <field name="blockchain_id" ref="blockchain_ethereum"/>
+        </record>
+
+
+    </data>
+</odoo>

@@ -1,0 +1,104 @@
+<odoo>
+    <record id="view_crypto_transaction_list" model="ir.ui.view">
+        <field name="name">crypto.transaction.list</field>
+        <field name="model">crypto.transaction</field>
+        <field name="arch" type="xml">
+            <list string="Crypto Transactions">
+                <field name="transaction_id"/>
+                <field name="currency"/>
+                <field name="amount"/>
+                <field name="sender_address"/>
+                <field name="recipient_address"/>
+                <field name="invoice_id"/>
+                <field name="status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_transaction_form" model="ir.ui.view">
+        <field name="name">crypto.transaction.form</field>
+        <field name="model">crypto.transaction</field>
+        <field name="arch" type="xml">
+            <form string="Crypto Transaction">
+                <sheet>
+                    <group>
+                        <field name="transaction_id"/>
+                        <field name="currency"/>
+                        <field name="amount"/>
+                        <field name="sender_address"/>
+                        <field name="recipient_address"/>
+                        <field name="invoice_id"/>
+                        <field name="status"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crypto_transaction" model="ir.actions.act_window">
+        <field name="name">Crypto Transactions</field>
+        <field name="res_model">crypto.transaction</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+
+
+</odoo>
+
+
+
+<!--<odoo>-->
+<!--    <record id="view_crypto_transaction_list" model="ir.ui.view">-->
+<!--        <field name="name">crypto.transaction.list</field>-->
+<!--        <field name="model">crypto.transaction</field>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <list string="Crypto Transactions">-->
+<!--                <field name="transaction_id"/>-->
+<!--                <field name="currency"/>-->
+<!--                <field name="amount"/>-->
+<!--                <field name="sender_address"/>-->
+<!--                <field name="recipient_address"/>-->
+<!--                <field name="invoice_id"/>-->
+<!--                <field name="status"/>-->
+<!--            </list>-->
+<!--        </field>-->
+<!--    </record>-->
+
+<!--    <record id="view_crypto_transaction_form" model="ir.ui.view">-->
+<!--        <field name="name">crypto.transaction.form</field>-->
+<!--        <field name="model">crypto.transaction</field>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <form string="Crypto Transaction">-->
+<!--                <sheet>-->
+<!--                    <group>-->
+<!--                        <field name="transaction_id"/>-->
+<!--                        <field name="currency"/>-->
+<!--                        <field name="amount"/>-->
+<!--                        <field name="sender_address"/>-->
+<!--                        <field name="recipient_address"/>-->
+<!--                        <field name="invoice_id"/>-->
+<!--                        <field name="status"/>-->
+<!--                    </group>-->
+<!--                </sheet>-->
+<!--            </form>-->
+<!--        </field>-->
+<!--    </record>-->
+
+<!--    <record id="action_crypto_transaction" model="ir.actions.act_window">-->
+<!--        <field name="name">Crypto Transactions</field>-->
+<!--        <field name="res_model">crypto.transaction</field>-->
+<!--        <field name="view_mode">list,form</field>-->
+<!--    </record>-->
+
+<!--    <menuitem id="menu_account_crypto_transaction" name="Crypto Transactions" parent="account.root_payment_menu"-->
+<!--              action="action_crypto_transaction" sequence="1"/>-->
+
+<!--    <menuitem id="menu_ecommerce_crypto_transaction" name="Crypto Transactions"-->
+<!--                  action="action_crypto_transaction" parent="website_sale.menu_ecommerce_settings"-->
+<!--                  sequence="40"/>-->
+
+<!--    <menuitem id="menu_sale_crypto_transaction" name="Crypto Transactions"-->
+<!--                  action="action_crypto_transaction" parent="sale.payment_menu"-->
+<!--                  sequence="40"/>-->
+
+<!--</odoo>-->

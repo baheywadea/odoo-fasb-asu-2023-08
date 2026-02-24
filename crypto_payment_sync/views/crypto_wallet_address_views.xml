@@ -1,0 +1,95 @@
+<odoo>
+
+    <record id="action_crypto_transaction_evm_by_address_id" model="ir.actions.act_window">
+        <field name="name">Crypto EVM Transactions By Address</field>
+        <field name="res_model">crypto.transaction.evm</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('wallet_address_id','=',active_id)]</field>
+    </record>
+
+    <record id="action_crypto_events_by_address_id" model="ir.actions.act_window">
+        <field name="name">Crypto Events By Address</field>
+        <field name="res_model">crypto.wallet.address.event</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('address_id','=',active_id)]</field>
+    </record>
+
+
+    <record id="view_crypto_wallet_address_list" model="ir.ui.view">
+        <field name="name">crypto.wallet.address.list</field>
+        <field name="model">crypto.wallet.address</field>
+        <field name="arch" type="xml">
+            <list string="Crypto Wallet Address">
+                <field name="name"/>
+                <field name="index"/>
+                <field name="wallet_id"/>
+                <field name="confirmed_balance" digits="[12,6]" readonly="1"/>
+                <field name="payment_transaction_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_wallet_address_form" model="ir.ui.view">
+        <field name="name">crypto.wallet.address.form</field>
+        <field name="model">crypto.wallet.address</field>
+        <field name="arch" type="xml">
+            <form string="Crypto Wallet Address">
+                <header>
+                    <button name="get_balance"
+                            type="object"
+                            string="Sync Addresses"
+                            class="btn-primary"/>
+                    <button name="get_confirmed_transactions"
+                            type="object"
+                            string="Get Confirmed Transactions"
+                            class="btn-primary"/>
+
+                    <button name="action_generate_event"
+                            type="object"
+                            string="Generate Event"
+                            class="btn-primary"/>
+
+                    <button name="get_events"
+                            type="object"
+                            string="Get All Events"
+                            class="btn-primary"/>
+
+
+                </header>
+                <sheet>
+                    <div name="button_box" class="oe_button_box">
+                        <button class="oe_stat_button" icon="fa-list" type="action"
+                                name="%(crypto_payment_sync.action_crypto_transaction_evm_by_address_id)d">
+                            <field widget="statinfo" name="transactions_evm_count" string="Address Transactions"/>
+                        </button>
+
+                        <button class="oe_stat_button" icon="fa-list" type="action"
+                                name="%(crypto_payment_sync.action_crypto_events_by_address_id)d">
+                            <field widget="statinfo" name="events_count" string="Events"/>
+                        </button>
+                    </div>
+                    <group>
+                        <field name="name"/>
+                        <field name="index"/>
+                        <field name="wallet_id"/>
+                        <field name="confirmed_balance" digits="[12,6]" readonly="1"/>
+                        <field name="last_synced_balance" readonly="1"/>
+                        <field name="payment_transaction_id"/>
+                        <field name="order" />
+
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crypto_wallet_address" model="ir.actions.act_window">
+        <field name="name">Crypto Wallet Address</field>
+        <field name="res_model">crypto.wallet.address</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+
+
+
+</odoo>

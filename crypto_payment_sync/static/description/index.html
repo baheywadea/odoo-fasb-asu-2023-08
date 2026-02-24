@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CryptoAPI Payments for Odoo</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --brand:#0f766e;   /* teal */
+      --brand2:#0b1320;  /* dark */
+    }
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#fafafa;color:#0f172a;}
+    .hero{
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(15,118,110,.18), transparent 55%),
+                  radial-gradient(900px 500px at 90% 0%, rgba(14,165,233,.14), transparent 55%),
+                  linear-gradient(180deg, #0b1320 0%, #0b1320 55%, #0f172a 100%);
+      color:#fff;
+    }
+    .badge-soft{background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); color:#fff;}
+    .shadow-soft{box-shadow:0 10px 30px rgba(2,6,23,.08);}
+    .feature-icon{
+      width:44px;height:44px;border-radius:14px;
+      display:inline-flex;align-items:center;justify-content:center;
+      background:rgba(15,118,110,.12); color:var(--brand); font-weight:700;
+    }
+    .img-card img{border-radius:16px;}
+    .caption{font-size:.92rem;color:#475569;}
+    .section-title{letter-spacing:-0.02em;}
+    .divider{height:1px;background:linear-gradient(90deg, transparent, rgba(2,6,23,.14), transparent);}
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,monospace;
+         font-size:.85em;background:#0b1320;color:#fff;border-radius:8px;padding:.2rem .45rem;}
+  </style>
+</head>
+
+<body>
+
+<!-- HERO -->
+<header class="hero py-5">
+  <div class="container py-4">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-7">
+        <span class="badge badge-soft rounded-pill px-3 py-2 mb-3">Odoo • CryptoAPI • Payments • Wallets</span>
+        <h1 class="display-5 fw-bold section-title">CryptoAPI Payments & Wallet Management for Odoo</h1>
+        <p class="lead mt-3 mb-4" style="color:rgba(255,255,255,.85)">
+          Accept crypto payments (website checkout & back-office), generate unique payment references,
+          track transactions on-chain, and automatically post accounting entries — all inside Odoo.
+        </p>
+
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge badge-soft rounded-pill px-3 py-2">Wallets per network</span>
+          <span class="badge badge-soft rounded-pill px-3 py-2">Customer & Vendor payments</span>
+          <span class="badge badge-soft rounded-pill px-3 py-2">Sales order / invoice linkage</span>
+          <span class="badge badge-soft rounded-pill px-3 py-2">Automated reconciliation</span>
+          <span class="badge badge-soft rounded-pill px-3 py-2">WalletConnect / QR checkout</span>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-soft p-3 bg-white">
+          <img class="img-fluid" src="./images/img_14.png" alt="Pay with Crypto - QR / WalletConnect">
+          <div class="mt-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="feature-icon">✓</span>
+              <div>
+                <div class="fw-semibold">Fast checkout</div>
+                <div class="caption">Customers can pay using WalletConnect / QR with clear on-screen guidance.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- OVERVIEW -->
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <h2 class="h1 fw-bold section-title">What this module delivers</h2>
+        <p class="mt-3 caption" style="font-size:1rem">
+          This module adds a complete crypto payment layer to Odoo:
+          configuration of supported currencies/networks, company wallets, payment requests, on-chain transaction tracking,
+          and accounting integration for both receivables and payables.
+        </p>
+
+        <div class="row g-3 mt-3">
+          <div class="col-sm-6">
+            <div class="card border-0 shadow-soft h-100">
+              <div class="card-body">
+                <div class="feature-icon mb-2">1</div>
+                <div class="fw-semibold">Wallets</div>
+                <div class="caption">Maintain wallets per currency & network and use them in payment requests.</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="card border-0 shadow-soft h-100">
+              <div class="card-body">
+                <div class="feature-icon mb-2">2</div>
+                <div class="fw-semibold">Payments</div>
+                <div class="caption">Create crypto customer/vendor payments with unique references and status tracking.</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="card border-0 shadow-soft h-100">
+              <div class="card-body">
+                <div class="feature-icon mb-2">3</div>
+                <div class="fw-semibold">Transactions</div>
+                <div class="caption">Store on-chain transaction hash, confirmations, fee, and timestamps.</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="card border-0 shadow-soft h-100">
+              <div class="card-body">
+                <div class="feature-icon mb-2">4</div>
+                <div class="fw-semibold">Accounting</div>
+                <div class="caption">Post journal entries automatically and keep audit-ready history.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft p-3">
+          <img class="img-fluid" src="./images/img.png" alt="Module menu in Odoo">
+          <div class="pt-3">
+            <div class="fw-semibold">New crypto menus inside Odoo</div>
+            <div class="caption">Dedicated menus for Wallets, Payments, Transactions, and Configuration.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- KEY FEATURES -->
+<section class="py-5">
+  <div class="container">
+    <div class="row align-items-end g-3 mb-4">
+      <div class="col-lg-8">
+        <h2 class="h1 fw-bold section-title mb-2">Key features</h2>
+        <p class="caption" style="font-size:1rem">
+          Built for real operations: clear flows, traceability, and accounting integrity.
+        </p>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-soft h-100">
+          <div class="card-body">
+            <div class="fw-semibold mb-2">Multi-currency & network support</div>
+            <ul class="caption mb-0">
+              <li>Enable currencies like <span class="kbd">ETH</span>, <span class="kbd">BTC</span> (and more)</li>
+              <li>Assign supported networks per currency</li>
+              <li>Company wallets per network</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-soft h-100">
+          <div class="card-body">
+            <div class="fw-semibold mb-2">Customer & Vendor crypto payments</div>
+            <ul class="caption mb-0">
+              <li>Create inbound and outbound crypto payments</li>
+              <li>Track status: Draft → In Process → Done / Cancelled</li>
+              <li>Link to invoices / bills as needed</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-soft h-100">
+          <div class="card-body">
+            <div class="fw-semibold mb-2">On-chain transaction tracking</div>
+            <ul class="caption mb-0">
+              <li>Transaction hash & explorer-ready reference</li>
+              <li>Sender/receiver addresses</li>
+              <li>Fees, confirmations, and timestamps</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-soft h-100">
+          <div class="card-body">
+            <div class="fw-semibold mb-2">Sales integration</div>
+            <ul class="caption mb-0">
+              <li>Connect crypto payments to Sales Orders</li>
+              <li>Show paid amount & currency on documents</li>
+              <li>Support partial payments if required</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-soft h-100">
+          <div class="card-body">
+            <div class="fw-semibold mb-2">E-commerce checkout</div>
+            <ul class="caption mb-0">
+              <li>Crypto payment method on website checkout</li>
+              <li>WalletConnect / QR payment screen</li>
+              <li>Clear instructions for customers</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-soft h-100">
+          <div class="card-body">
+            <div class="fw-semibold mb-2">Audit-ready accounting entries</div>
+            <ul class="caption mb-0">
+              <li>Automatic journal entry posting</li>
+              <li>Configurable accounts/journals</li>
+              <li>Full traceability from payment to move lines</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- HOW IT WORKS -->
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <h2 class="h1 fw-bold section-title">How it works</h2>
+        <p class="caption" style="font-size:1rem">
+          A simple, reliable flow for both website and back-office payments:
+        </p>
+
+        <ol class="mt-3 caption" style="font-size:1rem">
+          <li><b>Configure</b> supported crypto currencies/networks and company wallets.</li>
+          <li><b>Create a payment request</b> (customer or vendor) and select currency + wallet.</li>
+          <li><b>Pay & track</b>: customer completes payment via WalletConnect/QR, or you record an on-chain tx hash.</li>
+          <li><b>Validate</b> and update status once confirmed on-chain.</li>
+          <li><b>Post accounting</b> entries automatically and keep a full audit trail.</li>
+        </ol>
+
+        <div class="alert alert-light border shadow-soft mt-4">
+          <div class="fw-semibold mb-1">Tip</div>
+          <div class="caption mb-0">
+            Keep a dedicated journal for crypto payments (e.g., <span class="kbd">Crypto Payments</span>) to simplify reporting and reconciliation.
+          </div>
+        </div>
+
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft p-3">
+          <img class="img-fluid" src="./images/img_2.png" alt="Crypto payment configuration">
+          <div class="pt-3">
+            <div class="fw-semibold">Configuration & payment setup</div>
+            <div class="caption">Define payment currency, wallet, network, and internal accounting settings.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SCREENSHOTS -->
+<section class="py-5">
+  <div class="container">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+      <div>
+        <h2 class="h1 fw-bold section-title mb-2">Screenshots</h2>
+        <p class="caption" style="font-size:1rem">A quick tour across configuration, payments, accounting, and website checkout.</p>
+      </div>
+    </div>
+
+    <!-- Back-office -->
+    <h3 class="h4 fw-bold mt-2">Back-office: wallets, payments, and transactions</h3>
+    <div class="row g-3 mt-1">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_1.png" alt="Wallet list">
+            <div class="mt-3">
+              <div class="fw-semibold">Wallets</div>
+              <div class="caption">Manage multiple crypto wallets with currency, network, and company linkage.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_3.png" alt="Transaction details">
+            <div class="mt-3">
+              <div class="fw-semibold">Transaction details</div>
+              <div class="caption">Store tx hash, from/to addresses, network, confirmations, and fee.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_4.png" alt="Customer payments list">
+            <div class="mt-3">
+              <div class="fw-semibold">Customer payments</div>
+              <div class="caption">Track inbound crypto payments with status and amounts in crypto & company currency.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_5.png" alt="Customer payment form">
+            <div class="mt-3">
+              <div class="fw-semibold">Payment record</div>
+              <div class="caption">Full payment form including crypto amount, wallet, and on-chain references.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Accounting -->
+    <h3 class="h4 fw-bold mt-5">Accounting: journal entries and reconciliation</h3>
+    <div class="row g-3 mt-1">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_6.png" alt="Journal entry">
+            <div class="mt-3">
+              <div class="fw-semibold">Posted journal entry</div>
+              <div class="caption">Automatically generated accounting move lines for crypto settlement.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_7.png" alt="Vendor payments list">
+            <div class="mt-3">
+              <div class="fw-semibold">Vendor payments</div>
+              <div class="caption">Outbound crypto payments to vendors, with traceability & status control.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_8.png" alt="Vendor payment form">
+            <div class="mt-3">
+              <div class="fw-semibold">Vendor payment record</div>
+              <div class="caption">Record wallet, crypto amount, and related on-chain transaction metadata.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sales -->
+    <h3 class="h4 fw-bold mt-5">Sales: orders and payment linkage</h3>
+    <div class="row g-3 mt-1">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_9.png" alt="Sales orders list">
+            <div class="mt-3">
+              <div class="fw-semibold">Sales orders</div>
+              <div class="caption">Orders list showing payment state with crypto-enabled transactions.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_10.png" alt="Sales order form">
+            <div class="mt-3">
+              <div class="fw-semibold">Order details</div>
+              <div class="caption">Order view with crypto payment amount and related payment reference.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-12">
+        <div class="card border-0 shadow-soft img-card">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_11.png" alt="Sales order payment status">
+            <div class="mt-3">
+              <div class="fw-semibold">Payment status on order</div>
+              <div class="caption">Clear status and linkage between Odoo order, payment method, and crypto payment.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Website -->
+    <h3 class="h4 fw-bold mt-5">Website: checkout & WalletConnect / QR payment</h3>
+    <div class="row g-3 mt-1">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_12.png" alt="Checkout payment method">
+            <div class="mt-3">
+              <div class="fw-semibold">Checkout: choose Crypto</div>
+              <div class="caption">Crypto appears as a payment method on the checkout page.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-soft img-card h-100">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_13.png" alt="Product price in crypto">
+            <div class="mt-3">
+              <div class="fw-semibold">Product page: crypto pricing</div>
+              <div class="caption">Show crypto equivalents (e.g., ETH) alongside the product price if enabled.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-12">
+        <div class="card border-0 shadow-soft img-card">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_14.png" alt="WalletConnect / QR payment screen">
+            <div class="mt-3">
+              <div class="fw-semibold">Pay screen: WalletConnect / QR</div>
+              <div class="caption">Customer connects wallet, scans QR, and completes the payment securely.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Currency setup -->
+    <h3 class="h4 fw-bold mt-5">Master data: currencies configuration</h3>
+    <div class="row g-3 mt-1">
+      <div class="col-lg-12">
+        <div class="card border-0 shadow-soft img-card">
+          <div class="card-body">
+            <img class="img-fluid" src="./images/img_15.png" alt="Currency configuration list">
+            <div class="mt-3">
+              <div class="fw-semibold">Supported currencies</div>
+              <div class="caption">Enable/disable currencies, set types, and maintain crypto-related settings per currency.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FAQ -->
+<section class="py-5">
+  <div class="container">
+    <h2 class="h1 fw-bold section-title mb-4">FAQ</h2>
+
+    <div class="accordion shadow-soft" id="faq">
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="q1">
+          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#a1" aria-expanded="true" aria-controls="a1">
+            Does it support both customer and vendor payments?
+          </button>
+        </h2>
+        <div id="a1" class="accordion-collapse collapse show" aria-labelledby="q1" data-bs-parent="#faq">
+          <div class="accordion-body caption">
+            Yes. It supports inbound (customer) and outbound (vendor) payments, with status tracking and full accounting integration.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="q2">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a2" aria-expanded="false" aria-controls="a2">
+            Can I use it on eCommerce checkout?
+          </button>
+        </h2>
+        <div id="a2" class="accordion-collapse collapse" aria-labelledby="q2" data-bs-parent="#faq">
+          <div class="accordion-body caption">
+            Yes. A crypto payment method can be shown during checkout, and the customer can pay via WalletConnect / QR.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="q3">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a3" aria-expanded="false" aria-controls="a3">
+            What do I need to configure before using it?
+          </button>
+        </h2>
+        <div id="a3" class="accordion-collapse collapse" aria-labelledby="q3" data-bs-parent="#faq">
+          <div class="accordion-body caption">
+            Configure: currencies & networks, company wallets, and accounting journals/accounts. Then you can start creating crypto payments.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<!-- CONTACT -->
+    <div class="container my-5 p-4 rounded" style="background:#f7f3f6; border:1px solid #ddd;">
+        <h2 class="text-center mb-4 fw-bold" style="color:#714a65;">Support & Contact</h2>
+
+        <div class="row text-center">
+            <div class="col-md-6">
+                <i class="fa fa-envelope fs-1" style="color:#714a65;"></i>
+                <p class="mt-2 fs-5">bahey.wadea@gmail.com</p>
+            </div>
+            <div class="col-md-6">
+                <i class="fa fa-globe fs-1" style="color:#714a65;"></i>
+                <p class="mt-2 fs-5">www.linkedin.com/in/baheywadeahakim</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-4" style="background:#714a65; color:#fff;">
+        <p class="mb-0">&copy; 2026 Bahey Wadea. All rights reserved.</p>
+    </footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

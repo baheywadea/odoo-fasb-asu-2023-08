@@ -1,0 +1,56 @@
+<odoo>
+
+    <record id="crypto_payment_sync.action_crypto_payment_transaction" model="ir.actions.act_window">
+        <field name="name">Crypto Transactions</field>
+        <field name="res_model">payment.transaction</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('provider_id.code','=','crypto')]</field>
+    </record>
+
+    <record id="crypto_payment_sync.action_crypto_wallet_provider" model="ir.actions.act_window">
+        <field name="name">Crypto Wallet</field>
+        <field name="res_model">crypto.wallet</field>
+        <field name="domain">[('payment_provider_id.code','=','crypto')]</field>
+    </record>
+
+    <record id="view_payment_provider_form_crypto" model="ir.ui.view">
+        <field name="name">payment.provider.form.crypto</field>
+        <field name="model">payment.provider</field>
+        <field name="inherit_id" ref="payment.payment_provider_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form[1]/sheet[1]/div[@name='button_box']/button[@name='action_toggle_is_published'][2]"
+                   position="after">
+                <button class="oe_stat_button" icon="fa-google-wallet" type="action"
+                        name="%(crypto_payment_sync.action_crypto_wallet_provider)d"
+                        invisible="code != &quot;crypto&quot;">
+                    <field widget="statinfo" name="payment_provider_id_crypto_wallet_count" string="Wallets"/>
+                </button>
+                <button class="oe_stat_button" icon="fa-money" type="action"
+                        name="%(crypto_payment_sync.action_crypto_payment_transaction)d"
+                        invisible="code != &quot;crypto&quot;">
+                    <field widget="statinfo" name="provider_id_payment_transaction_count" string="Payments"/>
+                </button>
+            </xpath>
+            <xpath expr="//field[@name='is_published']" position="before">
+                <header>
+                    <button string="Sync Crypto Currencies" name="sync_crypto_currencies" type="object"
+                            invisible="code != 'crypto'"/>
+                    <button string="Sync Fiat Currencies" name="sync_fiat_currencies" type="object"
+                            invisible="code != 'crypto'"/>
+                    <button string="Sync Currencies Rates" name="sync_currencies_rate" type="object"
+                            invisible="code != 'crypto'"/>
+                    <button string="List HD Wallets" name="sync_wallets" type="object"
+                            invisible="code != 'crypto'"/>
+                </header>
+            </xpath>
+            <group name="provider_credentials" position="inside">
+                <group invisible="code != 'crypto'">
+                    <field name="cryptoapis_api_key" required="code == 'crypto' and state != 'disabled'"/>
+<!--                    <field name="crypto_wallet_address" required="code == 'crypto' and state != 'disabled'"/>-->
+                    <!--                    <field name="supported_cryptos" required="code == 'crypto' and state != 'disabled'"/>-->
+                </group>
+            </group>
+
+        </field>
+    </record>
+</odoo>

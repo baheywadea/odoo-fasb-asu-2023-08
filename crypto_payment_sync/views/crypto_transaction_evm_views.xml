@@ -1,0 +1,85 @@
+<odoo>
+    <record id="view_crypto_transaction_evm_list" model="ir.ui.view">
+        <field name="name">crypto.transaction.evm.list</field>
+        <field name="model">crypto.transaction.evm</field>
+        <field name="arch" type="xml">
+            <list string="Crypto EVM Transactions">
+                <field name="tx_hash"/>
+                <field name="sender"/>
+                <field name="recipient"/>
+                <field name="value_amount" digits="[12,6]"/>
+                <field name="value_unit"/>
+                <field name="status"/>
+                <field name="timestamp"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_transaction_evm_form" model="ir.ui.view">
+        <field name="name">crypto.transaction.evm.form</field>
+        <field name="model">crypto.transaction.evm</field>
+        <field name="arch" type="xml">
+            <form string="Crypto EVM Transactions">
+                <header>
+
+                    <button name="get_transaction_details"
+                            type="object"
+                            string="Get Details"
+                            class="btn-primary"/>
+
+<!--                    <button name="send_native_from_odoo"-->
+<!--                            type="object"-->
+<!--                            string="Send"-->
+<!--                            class="btn-primary"/>-->
+
+                </header>
+                <sheet>
+
+                    <group>
+                        <field name="tx_hash"/>
+                        <field name="timestamp"/>
+                        <field name="status"/>
+                        <field name="sender"/>
+                        <field name="recipient"/>
+                        <field name="contract"/>
+                        <field name="input_data"/>
+                    </group>
+                    <group string="Value">
+                        <field name="value_amount" digits="[12,6]"/>
+                        <field name="value_unit"/>
+                    </group>
+                    <group string="Fee &amp; Gas">
+                        <field name="fee_amount" digits="[12,6]"/>
+                        <field name="fee_unit"/>
+                        <field name="gas_limit" />
+                        <field name="gas_used"/>
+                        <field name="gas_price_amount"/>
+                        <field name="gas_price_unit"/>
+                    </group>
+                    <group string="Block Info">
+                        <field name="block_hash"/>
+                        <field name="block_height"/>
+                        <field name="position_in_block"/>
+                    </group>
+                    <group string="Blockchain Specific">
+                        <field name="bandwidth_used"/>
+                        <field name="energy_used" digits="[12,6]"/>
+                    </group>
+                    <group string="Wallet Specific">
+                        <field name="wallet_address_id" readonly="1"/>
+                        <field name="wallet_id"/>
+                        <field name="network_id"/>
+                        <field name="blockchain_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crypto_transaction_evm" model="ir.actions.act_window">
+        <field name="name">Crypto EVM Transactions</field>
+        <field name="res_model">crypto.transaction.evm</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

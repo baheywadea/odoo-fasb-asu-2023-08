@@ -1,0 +1,22 @@
+<odoo>
+    <record id="cron_fetch_crypto_rate" model="ir.actions.server">
+        <field name="name">Compute Rate</field>
+        <field name="model_id" ref="model_res_currency"/>
+        <field name="binding_model_id" ref="model_res_currency"/>
+        <field name="binding_view_types">form,list</field>
+        <field name="state">code</field>
+        <field name="code">
+            for rec in records:
+                rec.get_rate()
+        </field>
+    </record>
+
+    <record id="cron_fetch_crypto_transactions" model="ir.cron">
+        <field name="name">Fetch Crypto Transactions</field>
+        <field name="model_id" ref="model_crypto_transaction"/>
+        <field name="code">model.fetch_crypto_transactions()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active">True</field>
+    </record>
+</odoo>

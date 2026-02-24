@@ -1,0 +1,122 @@
+<odoo>
+    <record id="crypto_payment_sync.action_crypto_wallet_id_address" model="ir.actions.act_window">
+        <field name="name">Crypto Wallet Addresses</field>
+        <field name="res_model">crypto.wallet.address</field>
+        <field name="domain">[('wallet_id','=',active_id)]</field>
+    </record>
+
+
+    <record id="action_crypto_transaction_evm_by_wallet_id" model="ir.actions.act_window">
+        <field name="name">Crypto EVM Transactions By Wallet</field>
+        <field name="res_model">crypto.transaction.evm</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('wallet_id','=',active_id)]</field>
+    </record>
+
+    <record id="view_crypto_wallet_list" model="ir.ui.view">
+        <field name="name">crypto.wallet.list</field>
+        <field name="model">crypto.wallet</field>
+        <field name="arch" type="xml">
+            <list string="Crypto Wallets">
+                <field name="name"/>
+                <field name="xpub"/>
+                <field name="blockchain_id"/>
+                <field name="network_id"/>
+                <field name="currency_id"/>
+                <field name="wallet_id"/>
+                <field name="deposit_address"/>
+                <field name="payment_provider_id"/>
+                <field name="is_default"/>
+                <field name="is_testnet"/>
+                <field name="confirmed_balance" digits="[12,6]"  readonly="1"/>
+                <field name="total_received" digits="[12,6]"  readonly="1"/>
+                <field name="total_spent" digits="[12,6]" readonly="1"/>
+                <field name="active"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_crypto_wallet_address_by_wallet" model="ir.actions.act_window">
+        <field name="name">Crypto Wallet Address By Wallet</field>
+        <field name="res_model">crypto.wallet.address</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('wallet_id','=',active_id)]</field>
+    </record>
+
+    <record id="view_crypto_wallet_form" model="ir.ui.view">
+        <field name="name">crypto.wallet.form</field>
+        <field name="model">crypto.wallet</field>
+        <field name="arch" type="xml">
+            <form string="Crypto Wallets">
+                <header>
+                    <button name="action_generate_wallet_from_api"
+                            type="object"
+                            string="Generate Wallet from API"
+                            class="btn-primary"
+                            invisible="xpub != False"/>
+                    <button name="sync_addresses"
+                            type="object"
+                            string="Sync Addresses"
+                            class="btn-primary"/>
+                    <button name="get_balance"
+                            type="object"
+                            string="Get Details"
+                            class="btn-primary"/>
+                    <button name="get_confirmed_transactions"
+                            type="object"
+                            string="Get Transactions"
+                            class="btn-primary"/>
+                    <button name="derive_new_addresses"
+                            type="object"
+                            string="Derive New Address"
+                            class="btn-primary"/>
+
+
+                </header>
+                <sheet>
+                    <div name="button_box" class="oe_button_box">
+                        <button class="oe_stat_button" icon="fa-vcard" type="action" name="%(action_crypto_wallet_address_by_wallet)d">
+                            <field widget="statinfo" name="wallet_address_count" string="Wallet Address"/>
+                        </button>
+                        <button class="oe_stat_button" icon="fa-list" type="action" name="%(action_crypto_transaction_evm_by_wallet_id)d">
+                            <field widget="statinfo" name="transactions_evm_count" string="Wallet Transactions"/>
+                        </button>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="blockchain_id"/>
+                            <field name="currency_id"/>
+                            <field name="is_testnet"/>
+                            <field name="is_default"/>
+                            <field name="active"/>
+                            <field name="company_id"/>
+                        </group>
+                        <group>
+                            <field name="payment_provider_id"/>
+                            <field name="network_id"/>
+                            <field name="xpub"/>
+                            <field name="mnemonic"/>
+                            <field name="wallet_id"/>
+                            <field name="deposit_address"/>
+                            <field name="confirmed_balance" digits="[12,6]"  readonly="1"/>
+                            <field name="total_received" digits="[12,6]"  readonly="1"/>
+                            <field name="total_spent" digits="[12,6]" readonly="1"/>
+                            <field name="last_synced_balance" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crypto_wallet" model="ir.actions.act_window">
+        <field name="name">Crypto Wallet</field>
+        <field name="res_model">crypto.wallet</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+
+</odoo>

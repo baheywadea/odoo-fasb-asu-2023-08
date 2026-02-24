@@ -1,0 +1,18 @@
+<odoo>
+
+    <record id="view_journal_form_crypto" model="ir.ui.view">
+        <field name="name">account.journal.form.crypto</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form//page[@name='bank_account']" position="after">
+                <page string="Crypto" name="Crypto">
+                    <group name="Crypto">
+                        <field name="is_crypto"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

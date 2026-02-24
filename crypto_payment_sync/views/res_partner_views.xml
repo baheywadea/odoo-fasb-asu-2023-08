@@ -1,0 +1,28 @@
+<odoo>
+    <record id="view_partner_form_crypto" model="ir.ui.view">
+        <field name="name">res.partner.form.crypto</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form//page[@name='internal_notes']" position="after">
+                <page string="Crypto" name="Crypto Addresses">
+                    <group name="Crypto Addresses">
+                        <field name="crypto_address_ids">
+                            <list string="Crypto Addresses" multi_edit="1" sample="1" editable="bottom">
+                                <field name="name"/>
+                                <field name="network_id"/>
+
+                                <field name="blockchain_id"/>
+
+                                <field name="currency_id"/>
+
+                            </list>
+                        </field>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+
+</odoo>

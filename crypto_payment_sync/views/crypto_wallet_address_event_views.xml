@@ -1,0 +1,75 @@
+<odoo>
+
+
+
+    <record id="view_crypto_wallet_address_event_list" model="ir.ui.view">
+        <field name="name">crypto.wallet.address.event.list</field>
+        <field name="model">crypto.wallet.address.event</field>
+        <field name="arch" type="xml">
+            <list string="Crypto Wallet Address Event">
+                <field name="name"/>
+                <field name="reference_id"/>
+                <field name="address_id"/>
+                <field name="wallet_id"/>
+                <field name="network_id"/>
+                <field name="created_timestamp"/>
+                <field name="event_type"/>
+                <field name="active"/>
+                <field name="allow_duplicates"/>
+                <field name="callback_secretkey"/>
+                <field name="receive_callback_on"/>
+                <field name="confirmations_count"/>
+                <field name="transaction_id"/>
+
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_wallet_address_event_form" model="ir.ui.view">
+        <field name="name">crypto.wallet.address.event.form</field>
+        <field name="model">crypto.wallet.address.event</field>
+        <field name="arch" type="xml">
+            <form string="Crypto Wallet Address Event">
+                <header>
+                    <button name="get_event_details"
+                            type="object"
+                            string="Get Event Details"
+                            class="btn-primary"/>
+                </header>
+                <sheet>
+
+                    <group>
+                        <field name="name"/>
+                        <field name="reference_id"/>
+                        <field name="address_id"/>
+                        <field name="wallet_id"/>
+                        <field name="network_id"/>
+                        <field name="created_timestamp"/>
+                        <field name="event_type"/>
+
+                    </group>
+                    <group>
+                        <field name="active"/>
+                        <field name="allow_duplicates"/>
+                        <field name="callback_secretkey"/>
+                        <field name="receive_callback_on"/>
+                        <field name="confirmations_count"/>
+                        <field name="transaction_id"/>
+                        <field name="deactivation_reasons"/>
+                        <field name="deactivation_timestamp"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crypto_wallet_address_event" model="ir.actions.act_window">
+        <field name="name">Crypto Wallet Address Event</field>
+        <field name="res_model">crypto.wallet.address.event</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+
+
+
+</odoo>
