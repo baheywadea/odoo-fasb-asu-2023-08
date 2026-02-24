@@ -3,7 +3,7 @@
 > **Free, open-source FASB ASU 2023-08 compliance infrastructure for U.S. small and medium-sized enterprises (SMEs), built on Odoo ERP.**
 
 [![License: LGPL-3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
-[![Odoo Version](https://img.shields.io/badge/Odoo-17.0-875A7B)](https://www.odoo.com)
+[![Odoo Version](https://img.shields.io/badge/Odoo-19.0-875A7B)](https://www.odoo.com)
 [![Status](https://img.shields.io/badge/Status-Active%20Development-green)]()
 
 ---
