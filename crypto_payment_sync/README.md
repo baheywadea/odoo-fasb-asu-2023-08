@@ -8,26 +8,29 @@
 
 ---
 
-## What This Project Is — And Is Not
+## Important: What This Project Is — And Is Not
 
-> This section exists to be unambiguous. Please read it before evaluating the project.
+This section exists to be unambiguous. Please read it before evaluating the project.
 
-### ✅ This project IS:
+### This project is primarily:
 
-- **ERP accounting automation** — automated journal entries, fair-value remeasurement, and period-end disclosure inside Odoo
-- **Compliance infrastructure** — supporting FASB ASU 2023-08 reporting workflows for U.S. SMEs
-- **Non-custodial** — no funds are held, moved, or controlled at any point
-- **Read-only** — transaction data is ingested via read-only API connections; no write access to external accounts
-- **Financial reporting tooling** — the output is accounting records and disclosure schedules, not financial transactions
+- **ERP accounting automation** — automated journal entries, fair-value remeasurement, and disclosure reporting inside Odoo
+- **Digital asset transaction record ingestion** — receiving and normalizing transaction data from external providers into the Odoo accounting ledger
+- **Fair-value tracking** — capturing asset prices at transaction date and at each reporting period end
+- **Audit-ready reporting** — structured disclosure schedules and cost-basis records designed for CPA and auditor review
+- **Compliance-supporting infrastructure** — tools to help businesses work toward FASB ASU 2023-08 reporting requirements inside their existing Odoo ERP
 
-### ❌ This project is NOT:
+### This project is NOT:
 
 - A cryptocurrency exchange
-- A trading platform or investment tool
-- A custodial wallet or fund manager
-- A money transmission service
-- A payment processor
-- An investment advisory product
+- A trading platform or investment product
+- A custodial wallet service
+- A money transmission business
+- A regulated financial intermediary of any kind
+
+### Regarding advanced implementation components:
+
+This repository may contain code related to wallet management, transaction signing, or outbound payment workflows. **These are optional advanced implementation components.** They are not required for the core FASB ASU 2023-08 compliance workflow and must be evaluated separately for legal, tax, accounting, regulatory, and security compliance before any production use. Enabling these features may create legal or regulatory obligations depending on your jurisdiction and business model. Consult qualified legal and compliance professionals before use.
 
 ---
 
@@ -38,73 +41,100 @@
 For businesses holding qualifying digital assets, the standard requires:
 
 - **Fair-value measurement** at each reporting date, replacing the previous indefinite-lived intangible asset model
-- **Unrealized gains and losses** recognized in net income each period
+- **Unrealized gains and losses** recognized in net income each period — not just on disposal
 - **Enhanced tabular disclosures** covering cost basis, fair value, unrealized gain/loss, restrictions, and significant holdings
-- **IRS Form 8949-ready tax lot records** for realized dispositions
+- **Structured cost-basis records** supporting IRS Form 8949 reporting for realized dispositions
 
-For most U.S. SMEs, this creates a real operational problem: their ERP or accounting software has no built-in mechanism to capture daily fair values, auto-generate the required journal entries, or produce structured disclosure schedules. Many lack an affordable, ERP-integrated path to meet these requirements without expensive custom development or manual spreadsheet workflows.
+For most U.S. SMEs, this creates a practical operational problem: their ERP or accounting software has no built-in mechanism to capture daily fair values, auto-generate the required journal entries, or produce structured disclosure schedules. Many U.S. SMEs lack an affordable, ERP-integrated path to meet these requirements without expensive custom development or error-prone manual spreadsheet workflows.
 
 ---
 
 ## The ERP Compliance Gap
 
-| Platform | Native Digital Asset Accounting | Fair-Value Automation | ASU 2023-08 Disclosure Output | SME-Accessible |
-|---|---|---|---|---|
-| SAP S/4HANA | ❌ Requires custom dev | ❌ | ❌ | ❌ Enterprise pricing |
-| Oracle NetSuite | ❌ Requires custom dev | ❌ | ❌ | ⚠️ Mid-market pricing |
-| Microsoft Dynamics 365 | ❌ Requires custom dev | ❌ | ❌ | ⚠️ Mid-market pricing |
-| Odoo Community (unmodified) | ❌ No native support | ❌ | ❌ | ✅ Open-source |
-| **This Framework (Odoo)** | ✅ Automated | ✅ Automated | ✅ Structured output | ✅ Free, open-source |
+| Platform | Native Digital Asset Accounting Automation | Typical Gap |
+|---|---|---|
+| SAP S/4HANA | Limited / custom | Requires specialized configuration or custom development |
+| Oracle NetSuite | Limited / custom | Often requires SuiteScript or third-party tooling |
+| Microsoft Dynamics 365 | Limited / custom | No standard SME-focused digital asset accounting workflow |
+| Odoo Community | Not available by default | No official open-source FASB ASU 2023-08 workflow |
+| **This Framework** | **Open-source / Odoo-focused** | Designed to support transaction ingestion, fair-value tracking, journal automation, and disclosure workflows |
 
 ---
 
 ## The Solution: Three-Layer Compliance Architecture
 
-### Layer 1 — ERP-Payment Integration Layer (`crypto_payment_sync`)
+### Layer 1 — Transaction Data Integration (`crypto_payment_sync`)
 
-Connects Odoo to digital asset payment processors and exchange data providers via **read-only API polling and webhooks**. Ingests confirmed transaction records — amount, timestamp, asset type, counterparty reference — and maps them to Odoo accounting journals and analytic accounts. No write access to external systems. No fund movement.
+Middleware connecting Odoo to digital asset payment and transaction-data providers, with a core focus on transaction ingestion, reconciliation, accounting traceability, and compliance automation.
 
 **What it handles:**
-- Read-only API credential management (per provider)
-- Webhook receiver for incoming transaction events
-- Transaction deduplication and reconciliation queue
-- Mapping to Odoo journal entries, currencies, and accounting accounts
+- Read-only API polling and webhook ingestion of confirmed transaction records
+- Transaction normalization: amount, timestamp, asset type, provider reference
+- Deduplication and reconciliation queue
+- Mapping to Odoo journal accounts, currencies, and analytic dimensions
+- No fund custody required for the core compliance workflow
 
 ### Layer 2 — Automated Compliance Engine (`fasb_compliance_engine`)
 
-Implements the core FASB ASU 2023-08 accounting logic inside Odoo's standard accounting framework.
+Implements FASB ASU 2023-08 accounting logic inside Odoo's standard accounting framework. Helps automate the period-end workflows that the standard requires.
 
 **What it handles:**
-- Fair-value capture at transaction date and at each reporting period end
-- Automated unrealized gain/loss journal entries (mark-to-market remeasurement)
+- Fair-value capture at transaction date and reporting period end
+- Automated unrealized gain/loss journal entry preparation (mark-to-market remeasurement)
 - Tax lot tracking using configurable cost-basis methods (FIFO, specific identification)
 - Period-end remeasurement wizard for batch processing
 - Realized gain/loss calculation on disposition events
+- Full audit trail with timestamped price source records
 
-### Layer 3 — Reporting & Disclosure Layer (`digital_asset_reporting`)
+### Layer 3 — Reporting & Disclosure (`digital_asset_reporting`)
 
-Generates structured, auditor-ready output directly from Odoo's accounting data — no manual exports or off-system spreadsheets required.
+Generates structured, auditor-ready output directly from Odoo's accounting data — designed to support CPA and auditor review without requiring manual exports or off-system spreadsheets.
 
 **What it handles:**
 - FASB ASU 2023-08 tabular disclosure schedule (cost basis, fair value, unrealized G/L, restrictions)
 - IRS Form 8949-ready realized gain/loss report
-- Period-over-period digital asset roll-forward
-- Audit trail with timestamped fair-value source records
-- Export to PDF and Excel for CPA review
+- Digital asset roll-forward by period
+- Audit trail export with fair-value source documentation
+- PDF and Excel output for accountant review
+
+---
+
+## Core vs. Optional Advanced Capabilities
+
+### Core Accounting-Focused Capabilities
+
+These capabilities support the primary FASB ASU 2023-08 compliance workflow and are the focus of this project:
+
+- Digital asset transaction import and reconciliation
+- Webhook and API polling from transaction-data providers
+- Provider transaction references and accounting traceability
+- Fair-value tracking and period-end remeasurement
+- Automated journal entry preparation
+- Audit trail generation
+- FASB ASU 2023-08 disclosure schedule output
+- Cost-basis records and IRS Form 8949-ready reporting support
+
+### Optional Advanced Capabilities
+
+The following capabilities may be present in the codebase as implementation components but are **not required** for the core compliance workflow:
+
+- HD wallet management
+- WalletConnect checkout integration
+- EVM transaction signing
+- Vendor and employee crypto payout workflows
+- Outbound crypto payment execution
+
+> **Important:** Optional advanced capabilities must be enabled only after proper legal, accounting, regulatory, and security review. Enabling outbound payment or signing features may create custody, money transmission, or other regulatory obligations in your jurisdiction. This project does not provide guidance on those obligations — consult qualified legal and compliance professionals before enabling these features.
 
 ---
 
 ## Production Background
 
-This framework is built on **production-validated ERP architecture patterns** developed across active Odoo deployments spanning multiple industries and countries, including:
+`crypto_payment_sync` is based on production-validated architecture patterns involving digital asset transaction detection, webhook processing, exchange-rate capture, accounting references, and audit-trail generation — developed across active ERP deployments spanning multiple industries and jurisdictions.
 
-- Payment gateway integrations (K-Net, MyFatoorah, Visa/Mastercard CyberSource, DHL Logistics API)
-- API polling and webhook-based transaction ingestion
-- Automated multi-currency accounting and cross-border reconciliation
-- Deferred revenue recognition and contract automation
-- Audit-ready financial workflows with full journal entry traceability
+Some advanced payment-execution features may exist in the codebase. The primary purpose of this repository is **accounting automation and compliance support**, not custody, exchange, or money transmission.
 
-> **Important:** The architecture patterns are production-validated. The open-source modules in this repository are **under active development** and should not be used in production accounting environments without qualified CPA and technical review. See the [Compliance Disclaimer](#compliance-disclaimer) below.
+> **Note:** The open-source modules in this repository are **under active development** and should not be used in production accounting environments without qualified CPA and technical review.
 
 ---
 
@@ -112,48 +142,48 @@ This framework is built on **production-validated ERP architecture patterns** de
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              EXTERNAL DIGITAL ASSET PROVIDERS               │
-│   (Payment Processors · Exchange Data APIs · Blockchain)    │
+│         EXTERNAL DIGITAL ASSET / TRANSACTION PROVIDERS      │
+│    (Payment Processors · Exchange Data APIs · Blockchain)   │
 └──────────────────────────┬──────────────────────────────────┘
-                           │  Read-Only API / Webhooks
-                           │  (no fund movement, no writes)
+                           │  Read-Only APIs / Webhooks
+                           │  (transaction data ingestion only)
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              LAYER 1 — INTEGRATION MIDDLEWARE               │
-│                   crypto_payment_sync                       │
-│  · API credential management (read-only)                    │
-│  · Webhook receiver & transaction ingestion                 │
-│  · Deduplication & reconciliation queue                     │
+│           LAYER 1 — TRANSACTION DATA INTEGRATION            │
+│                    crypto_payment_sync                      │
+│  · Webhook receiver & API polling                           │
+│  · Transaction normalization & deduplication                │
+│  · Reconciliation queue                                     │
 │  · Odoo journal / account mapping                           │
 └──────────────────────────┬──────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              LAYER 2 — FASB COMPLIANCE ENGINE               │
-│                  fasb_compliance_engine                     │
+│           LAYER 2 — FASB ASU 2023-08 COMPLIANCE ENGINE      │
+│                   fasb_compliance_engine                    │
 │  · Fair-value capture (transaction date + period end)       │
-│  · Unrealized gain/loss remeasurement (ASU 2023-08)         │
+│  · Unrealized gain/loss remeasurement journal prep          │
 │  · Tax lot tracking (FIFO / specific identification)        │
 │  · Period-end remeasurement wizard                          │
-│  · Realized gain/loss on disposition                        │
+│  · Realized gain/loss on disposition events                 │
 └──────────────────────────┬──────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│           LAYER 3 — REPORTING & DISCLOSURE                  │
-│                 digital_asset_reporting                     │
+│              LAYER 3 — REPORTING & DISCLOSURE               │
+│                  digital_asset_reporting                    │
 │  · FASB ASU 2023-08 tabular disclosure schedule             │
 │  · IRS Form 8949-ready realized gain/loss report            │
-│  · Digital asset roll-forward by period                     │
+│  · Period-over-period digital asset roll-forward            │
 │  · Audit trail with fair-value source records               │
-│  · PDF / Excel export for CPA review                        │
+│  · PDF / Excel export for CPA and auditor review            │
 └──────────────────────────┬──────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  ODOO ERP ACCOUNTING                        │
-│  Standard Odoo journal entries · Chart of accounts          │
-│  Multi-currency ledger · Financial statements               │
+│                    ODOO ERP ACCOUNTING                      │
+│   Standard journal entries · Chart of accounts              │
+│   Multi-currency ledger · Financial statements              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -164,7 +194,7 @@ This framework is built on **production-validated ERP architecture patterns** de
 ```
 odoo-fasb-asu-2023-08/
 │
-├── crypto_payment_sync/          # Layer 1: Read-only API integration & transaction ingestion
+├── crypto_payment_sync/          # Layer 1: Transaction data integration & ingestion
 │   ├── models/
 │   ├── views/
 │   ├── data/
@@ -191,11 +221,11 @@ odoo-fasb-asu-2023-08/
 
 ## Installation — Development Preview
 
-> ⚠️ **This project is under active development. Installation steps may change before the first stable release. Do not use in a production accounting environment without qualified technical and CPA review.**
+> ⚠️ **This project is under active development. Installation steps may change before the first stable release. Do not deploy in a production accounting environment without qualified technical and CPA review.**
 
 ### Prerequisites
 
-- Odoo 19.0 Community or Enterprise
+- Odoo 17.0 Community or Enterprise
 - Python 3.10+
 - PostgreSQL 14+
 
@@ -205,41 +235,60 @@ odoo-fasb-asu-2023-08/
 # 1. Clone the repository
 git clone https://github.com/baheywadea/odoo-fasb-asu-2023-08.git
 
-# 2. Copy addons to your Odoo custom addons path
+# 2. Copy module folders to your Odoo custom addons path
 cp -r odoo-fasb-asu-2023-08/crypto_payment_sync /your/odoo/addons/
 cp -r odoo-fasb-asu-2023-08/fasb_compliance_engine /your/odoo/addons/
 cp -r odoo-fasb-asu-2023-08/digital_asset_reporting /your/odoo/addons/
 
 # 3. Restart Odoo
-sudo systemctl restart odoo   # or your equivalent
+sudo systemctl restart odoo   # or your equivalent startup command
 
 # 4. In Odoo: Settings → Activate Developer Mode → Apps → Update App List
 
 # 5. Search for and install:
-#    - Digital Asset Sync (crypto_payment_sync)
-#    - FASB Compliance Engine (fasb_compliance_engine)
-#    - Digital Asset Reporting (digital_asset_reporting)
+#    - Digital Asset Sync        (crypto_payment_sync)
+#    - FASB Compliance Engine    (fasb_compliance_engine)
+#    - Digital Asset Reporting   (digital_asset_reporting)
 
 # 6. Configure:
-#    - Settings → Digital Assets: enter read-only API credentials per provider
 #    - Accounting → Configuration: map digital asset accounts to your chart of accounts
 #    - Set your default cost-basis method (FIFO recommended for U.S. GAAP)
+#    - Configure provider credentials only as needed for transaction ingestion
 ```
+
+> Optional advanced features (wallet, signing, outbound payments) are disabled by default and require separate configuration and professional review before enabling.
+
+---
+
+## Regulatory Context
+
+This framework is designed to help support the following regulatory and reporting frameworks. "Supports" and "helps prepare" are used intentionally — this software does not guarantee compliance with any regulation.
+
+| Regulation / Guidance | Compliance Area Supported |
+|---|---|
+| FASB ASU 2023-08 | Fair-value measurement and disclosure support for qualifying crypto assets |
+| ASC 820 | Fair-value measurement reference framework for price sourcing |
+| IRS Form 8949 | Cost-basis and disposal reporting support |
+| IRS digital asset reporting rules | Transaction record and reporting workflow support |
+| NIST CSF 2.0 | Security control alignment for credential handling and audit logging |
+| SBA modernization priorities | SME access to affordable technology and financial transparency tooling |
 
 ---
 
 ## Roadmap
 
 - [x] Architecture design and documentation
-- [x] Production prototype pattern validated (payment gateway integrations, automated accounting, API ingestion)
-- [ ] `crypto_payment_sync` — read-only API integration layer
+- [x] Production-validated transaction ingestion and accounting patterns
+- [ ] `crypto_payment_sync` — transaction data integration layer
 - [ ] `fasb_compliance_engine` — fair-value accounting and ASU 2023-08 logic
 - [ ] `digital_asset_reporting` — disclosure reports and audit-ready export
+- [ ] Tax lot tracking and IRS Form 8949-ready output
+- [ ] Journal entry automation
 - [ ] Demo database with sample data
 - [ ] UI screenshots
 - [ ] Walkthrough video
-- [ ] Odoo Apps Marketplace listing
-- [ ] Pilot feedback from SMEs, CPA firms, and Odoo partners
+- [ ] CPA firm and Odoo partner pilot feedback
+- [ ] Optional advanced payment features — reviewed separately with appropriate professional guidance
 
 ---
 
@@ -249,10 +298,10 @@ sudo systemctl restart odoo   # or your equivalent
 |---|---|
 | **Odoo partners serving U.S. clients** | Add ASU 2023-08 compliance capability to your service offering |
 | **U.S. SMEs holding or receiving digital assets** | Automate fair-value accounting and disclosure inside your existing Odoo ERP |
-| **CPA firms** | Provide clients with structured, auditor-ready digital asset reports from their ERP |
-| **Fintech and payment teams** | Add GAAP-compliant accounting automation to digital asset payment workflows |
-| **Accounting technology builders** | Extend or integrate with a structured open-source compliance layer |
-| **Odoo ERP developers** | Contribute to an ERP compliance framework in an emerging accounting domain |
+| **CPA firms** | Provide clients with structured, auditor-ready digital asset reports generated from their ERP |
+| **Fintech ERP teams** | Add GAAP-aligned accounting automation to digital asset payment ingestion workflows |
+| **ERP developers** | Contribute to a structured open-source compliance layer in an emerging accounting domain |
+| **Accounting technology builders** | Extend or integrate with a modular, Odoo-native compliance framework |
 
 ---
 
@@ -260,9 +309,9 @@ sudo systemctl restart odoo   # or your equivalent
 
 **Coming soon:**
 
-- Odoo crypto transaction import screen
+- Odoo digital asset transaction import screen
 - Fair-value capture and price source configuration
-- Automated journal entry generation
+- Automated journal entry draft
 - Period-end remeasurement wizard
 - FASB ASU 2023-08 tabular disclosure report output
 - IRS Form 8949-ready gain/loss export
@@ -271,13 +320,23 @@ sudo systemctl restart odoo   # or your equivalent
 
 ## Compliance Disclaimer
 
-This project is provided for **technical and educational purposes only**.
+This software is provided for **technical and educational purposes only**.
 
-It is **not** legal advice, accounting advice, tax advice, investment advice, financial advice, custody services, or money transmission services of any kind.
+It does not provide:
 
-FASB ASU 2023-08 compliance requirements vary by entity type, fiscal year, asset classification, and jurisdiction. The accounting logic implemented in this framework reflects a technical interpretation of the published standard and has not been reviewed or approved by FASB, the AICPA, the SEC, or any regulatory authority.
+- Legal advice
+- Accounting advice
+- Tax advice
+- Investment advice
+- Custody services
+- Money transmission services
+- Financial advice of any kind
 
-**Businesses should consult qualified CPAs, tax advisors, legal counsel, and compliance professionals before implementing any digital asset accounting workflow.**
+Use of optional advanced features — including any wallet management, transaction signing, or outbound payment functionality — may create legal or regulatory obligations depending on jurisdiction, business model, and implementation details. This project does not assess, address, or accept responsibility for those obligations.
+
+The accounting logic implemented in this framework reflects a technical interpretation of published standards and guidance. It has not been reviewed or approved by FASB, the AICPA, the IRS, the SEC, or any regulatory authority.
+
+**Businesses should consult qualified CPAs, tax advisors, legal counsel, and compliance professionals before implementing any digital asset accounting workflow in a production environment.**
 
 This software is provided "as is," without warranty of any kind. See the [LICENSE](LICENSE) file for full terms.
 
@@ -287,6 +346,8 @@ This software is provided "as is," without warranty of any kind. See the [LICENS
 
 **Bahey Wadea Zakary Hakim**
 Senior ERP Architect | Odoo Specialist | Financial Automation Engineer
+
+13+ years of software engineering experience, including production ERP deployments supporting businesses across Kuwait and international operations involving U.S., U.K., Egypt, Saudi Arabia, and European contexts. Specialized in financial compliance automation, payment gateway integration, multi-currency ERP systems, and audit-ready accounting workflows.
 
 | | |
 |---|---|
@@ -304,10 +365,13 @@ Contributions, issue reports, and pilot feedback are welcome from:
 
 - **Odoo partners** implementing digital asset workflows for U.S. clients
 - **CPA firms** with experience in ASU 2023-08 client engagements
-- **SME owners** holding or receiving digital assets in their business operations
+- **SME owners** holding or receiving digital assets in business operations
+- **Fintech ERP teams** integrating payment data into accounting systems
 - **Odoo and Python developers** interested in ERP compliance tooling
 
-To contribute, open an issue or pull request on GitHub. For pilot feedback or collaboration inquiries, reach out via email.
+Contributions related to compliance logic, disclosure formats, or tax reporting should be reviewed by qualified accounting and tax professionals before being merged. Open an issue to discuss before submitting a pull request on compliance-sensitive components.
+
+To get involved, open an issue or pull request on GitHub. For pilot feedback or collaboration inquiries, reach out via email.
 
 ---
 
@@ -319,4 +383,4 @@ This project is free and open-source software. You may use, modify, and distribu
 
 ---
 
-*This README was last updated: 2026*
+*README last updated: 2026*
