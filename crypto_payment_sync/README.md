@@ -3,7 +3,7 @@
 **Open-source ERP compliance infrastructure for automating digital asset accounting, fair-value tracking, and audit-ready reporting inside Odoo.**
 
 ![License: LGPL-3](https://img.shields.io/badge/License-LGPL--3-blue.svg)
-![Odoo Version](https://img.shields.io/badge/Odoo-17.0-8A2BE2)
+![Odoo Version](https://img.shields.io/badge/Odoo-19.0-8A2BE2)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-orange)
 
 ---
@@ -195,7 +195,7 @@ odoo-fasb-asu-2023-08/
 
 ### Prerequisites
 
-- Odoo 17.0 Community or Enterprise
+- Odoo 19.0 Community or Enterprise
 - Python 3.10+
 - PostgreSQL 14+
 
