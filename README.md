@@ -383,4 +383,12 @@ This project is free and open-source software. You may use, modify, and distribu
 
 ---
 
+## Professional Feedback Requested
+
+I am currently collecting professional feedback from Odoo developers, ERP consultants, accountants, CPAs, fintech professionals, and digital asset compliance specialists.
+
+Please share your feedback here:
+
+https://github.com/baheywadea/odoo-fasb-asu-2023-08/discussions/2
+
 *README last updated: 2026*
