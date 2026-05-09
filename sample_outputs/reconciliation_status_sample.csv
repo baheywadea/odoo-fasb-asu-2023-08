@@ -1,0 +1,2 @@
+reconciliation_id,period_start,period_end,source_transaction_id,normalized_status,fair_value_status,journal_support_status,tax_readiness_status,reconciliation_status,reviewer_notes
+REC-DEMO-0001,2026-01-01,2026-03-31,0xdemo000000000000000000000000000000000001,normalized,needs_review,prepared,needs_review,pending,Fake reconciliation support row

@@ -1,0 +1,26 @@
+{
+  "data": {
+    "items": [
+      {
+        "hash": "0xdemo000000000000000000000000000000000001",
+        "timestamp": 1768477330,
+        "sender": "0x000000000000000000000000000000000000dEaD",
+        "recipient": "0x000000000000000000000000000000000000bEEF",
+        "status": "confirmed",
+        "value": {
+          "amount": "0.75000000",
+          "unit": "ETH"
+        },
+        "fee": {
+          "amount": "0.00210000",
+          "unit": "ETH"
+        },
+        "minedInBlock": {
+          "height": 12345678,
+          "hash": "0xblockdemo00000000000000000000000000000001"
+        }
+      }
+    ]
+  },
+  "note": "Fake fixture shaped for normalizer tests. It is not a real transaction."
+}

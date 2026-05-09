@@ -4,104 +4,143 @@
         <record id="blockchain_ethereum" model="crypto.blockchain">
             <field name="name">Ethereum</field>
             <field name="technical_name">ethereum</field>
+            <field name="cryptoapis_slug">ethereum</field>
             <field name="symbol">ETH</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="network_type">layer1</field>
+            <field name="is_evm_compatible">True</field>
             <field name="explorer_url">https://etherscan.io</field>
         </record>
 
         <record id="blockchain_bitcoin" model="crypto.blockchain">
             <field name="name">Bitcoin</field>
             <field name="technical_name">bitcoin</field>
+            <field name="cryptoapis_slug">bitcoin</field>
             <field name="symbol">BTC</field>
+            <field name="native_asset_symbol">BTC</field>
             <field name="network_type">layer1</field>
+            <field name="is_evm_compatible">False</field>
             <field name="explorer_url">https://www.blockchain.com/explorer</field>
         </record>
 
         <record id="blockchain_bnb" model="crypto.blockchain">
             <field name="name">BNB Smart Chain</field>
-            <field name="technical_name">BNB Smart Chain</field>
+            <field name="technical_name">binance-smart-chain</field>
+            <field name="cryptoapis_slug">binance-smart-chain</field>
             <field name="symbol">BNB</field>
+            <field name="native_asset_symbol">BNB</field>
             <field name="network_type">layer1</field>
+            <field name="is_evm_compatible">True</field>
             <field name="explorer_url">https://bscscan.com</field>
         </record>
 
         <record id="blockchain_polygon" model="crypto.blockchain">
             <field name="name">Polygon</field>
             <field name="technical_name">polygon</field>
+            <field name="cryptoapis_slug">polygon</field>
             <field name="symbol">MATIC</field>
+            <field name="native_asset_symbol">POL</field>
             <field name="network_type">layer2</field>
+            <field name="is_evm_compatible">True</field>
             <field name="explorer_url">https://polygonscan.com</field>
         </record>
 
         <record id="blockchain_avalanche" model="crypto.blockchain">
             <field name="name">Avalanche</field>
             <field name="technical_name">avalanche</field>
+            <field name="cryptoapis_slug">avalanche</field>
             <field name="symbol">AVAX</field>
+            <field name="native_asset_symbol">AVAX</field>
             <field name="network_type">layer1</field>
+            <field name="is_evm_compatible">True</field>
             <field name="explorer_url">https://snowtrace.io</field>
         </record>
 
         <record id="blockchain_solana" model="crypto.blockchain">
             <field name="name">Solana</field>
             <field name="technical_name">solana</field>
+            <field name="cryptoapis_slug">solana</field>
             <field name="symbol">SOL</field>
+            <field name="native_asset_symbol">SOL</field>
             <field name="network_type">layer1</field>
+            <field name="is_evm_compatible">False</field>
             <field name="explorer_url">https://solscan.io</field>
         </record>
 
         <record id="blockchain_tron" model="crypto.blockchain">
             <field name="name">Tron</field>
             <field name="technical_name">tron</field>
+            <field name="cryptoapis_slug">tron</field>
             <field name="symbol">TRX</field>
+            <field name="native_asset_symbol">TRX</field>
             <field name="network_type">layer1</field>
+            <field name="is_evm_compatible">False</field>
             <field name="explorer_url">https://tronscan.org</field>
         </record>
 
         <record id="blockchain_litecoin" model="crypto.blockchain">
             <field name="name">Litecoin</field>
             <field name="technical_name">litecoin</field>
+            <field name="cryptoapis_slug">litecoin</field>
             <field name="symbol">LTC</field>
+            <field name="native_asset_symbol">LTC</field>
             <field name="network_type">layer1</field>
+            <field name="is_evm_compatible">False</field>
             <field name="explorer_url">https://blockchair.com/litecoin</field>
         </record>
 
         <record id="blockchain_fantom" model="crypto.blockchain">
             <field name="name">Fantom</field>
             <field name="technical_name">fantom</field>
+            <field name="cryptoapis_slug">fantom</field>
             <field name="symbol">FTM</field>
+            <field name="native_asset_symbol">FTM</field>
             <field name="network_type">layer1</field>
+            <field name="is_evm_compatible">True</field>
             <field name="explorer_url">https://ftmscan.com</field>
         </record>
 
         <record id="blockchain_cardano" model="crypto.blockchain">
             <field name="name">Cardano</field>
             <field name="technical_name">cardano</field>
+            <field name="cryptoapis_slug">cardano</field>
             <field name="symbol">ADA</field>
+            <field name="native_asset_symbol">ADA</field>
             <field name="network_type">layer1</field>
+            <field name="is_evm_compatible">False</field>
             <field name="explorer_url">https://cardanoscan.io</field>
         </record>
 
         <record id="blockchain_optimism" model="crypto.blockchain">
             <field name="name">Optimism</field>
             <field name="technical_name">optimism</field>
+            <field name="cryptoapis_slug">optimism</field>
             <field name="symbol">OP</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="network_type">layer2</field>
+            <field name="is_evm_compatible">True</field>
             <field name="explorer_url">https://optimistic.etherscan.io</field>
         </record>
 
         <record id="blockchain_arbitrum" model="crypto.blockchain">
             <field name="name">Arbitrum One</field>
             <field name="technical_name">arbitrum</field>
+            <field name="cryptoapis_slug">arbitrum</field>
             <field name="symbol">ARB</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="network_type">layer2</field>
+            <field name="is_evm_compatible">True</field>
             <field name="explorer_url">https://arbiscan.io</field>
         </record>
 
         <record id="blockchain_base" model="crypto.blockchain">
             <field name="name">Base</field>
             <field name="technical_name">base</field>
+            <field name="cryptoapis_slug">base</field>
             <field name="symbol">BASE</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="network_type">layer2</field>
+            <field name="is_evm_compatible">True</field>
             <field name="explorer_url">https://basescan.org</field>
         </record>
     </data>

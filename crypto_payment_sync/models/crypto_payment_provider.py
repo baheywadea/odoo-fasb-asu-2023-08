@@ -16,8 +16,22 @@ class CryptoPaymentProvider(models.Model):
     code = fields.Selection(selection_add=[("crypto", "Crypto Payment")], ondelete={"crypto": "cascade"})
     # crypto_wallet_address = fields.Char(string="Company Wallet Address")
     cryptoapis_api_key = fields.Char(string="API KEY", help="API KEY")
+    cryptoapis_api_key_masked = fields.Char(
+        string="Masked API Key",
+        compute="_compute_cryptoapis_api_key_masked",
+    )
     payment_provider_id_crypto_wallet_count = fields.Integer(compute="_compute_crypto_wallet_count", store=True)
     provider_id_payment_transaction_count = fields.Integer(compute="_compute_crypto_transaction_count", store=True)
+
+    def _compute_cryptoapis_api_key_masked(self):
+        for record in self:
+            api_key = record.cryptoapis_api_key or ""
+            if not api_key:
+                record.cryptoapis_api_key_masked = ""
+            elif len(api_key) <= 8:
+                record.cryptoapis_api_key_masked = "****"
+            else:
+                record.cryptoapis_api_key_masked = f"{api_key[:4]}...{api_key[-4:]}"
 
     def _compute_crypto_wallet_count(self):
         for record in self:

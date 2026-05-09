@@ -12,13 +12,51 @@
         </field>
     </record>
 
-    <menuitem id="menu_crypto_transaction_root" name="Crypto APIS" sequence="10" web_icon="crypto_payment_sync,static/description/icon.png"/>
+    <record id="action_crypto_payment_transactions_all" model="ir.actions.act_window">
+        <field name="name">Payment Transactions</field>
+        <field name="res_model">payment.transaction</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('provider_id.code','=','crypto')]</field>
+    </record>
+
+    <record id="action_crypto_journals" model="ir.actions.act_window">
+        <field name="name">Crypto Journals</field>
+        <field name="res_model">account.journal</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_crypto','=',True)]</field>
+    </record>
+
+    <record id="action_crypto_account_payments" model="ir.actions.act_window">
+        <field name="name">Crypto Account Payments</field>
+        <field name="res_model">account.payment</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('journal_id.is_crypto','=',True)]</field>
+    </record>
+
+    <record id="action_res_partner_crypto_address" model="ir.actions.act_window">
+        <field name="name">Partner Crypto Addresses</field>
+        <field name="res_model">res.partner.crypto.address</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_crypto_assets" model="ir.actions.act_window">
+        <field name="name">Digital Assets</field>
+        <field name="res_model">res.currency</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('type','=','crypto')]</field>
+        <field name="context">{'default_type': 'crypto', 'default_rounding': 0.00000001}</field>
+    </record>
+
+    <menuitem id="menu_crypto_transaction_root" name="Crypto Accounting Support" sequence="10" web_icon="crypto_payment_sync,static/description/icon.png"/>
 
     <menuitem id="menu_crypto_provide" name="Crypto Payment Providers" parent="menu_crypto_transaction_root"
               action="action_crypto_payment_provider" sequence="10"/>
 
     <menuitem id="menu_crypto_transaction" name="Transactions" parent="menu_crypto_transaction_root"
                sequence="20"/>
+
+    <menuitem id="menu_crypto_source_transactions" name="Source Transactions" parent="menu_crypto_transaction"
+              action="action_crypto_transaction" sequence="5"/>
 
     <menuitem id="menu_crypto_config" name="Configuration" parent="menu_crypto_transaction_root" sequence="100"/>
 
@@ -42,6 +80,53 @@
 
     <menuitem id="menu_crypto_currencies" name="Currencies" parent="menu_crypto_config"
               action="base.action_currency_form" sequence="60"/>
+
+    <menuitem id="menu_crypto_assets" name="Digital Assets" parent="menu_crypto_config"
+              action="action_crypto_assets" sequence="65"/>
+
+    <menuitem id="menu_crypto_partner_addresses" name="Partner Crypto Addresses" parent="menu_crypto_config"
+              action="action_res_partner_crypto_address" sequence="70"/>
+
+    <menuitem id="menu_crypto_ingestion" name="Ingestion" parent="menu_crypto_transaction_root" sequence="30"/>
+
+    <menuitem id="menu_crypto_normalized_transactions" name="Normalized Transactions"
+              parent="menu_crypto_ingestion" action="action_crypto_normalized_transaction" sequence="10"/>
+
+    <menuitem id="menu_crypto_exceptions" name="Exceptions"
+              parent="menu_crypto_ingestion" action="action_crypto_normalized_transaction_exceptions"
+              sequence="20"/>
+
+    <menuitem id="menu_crypto_payment_transactions" name="Payment Transactions"
+              parent="menu_crypto_ingestion" action="action_crypto_payment_transactions_all" sequence="30"/>
+
+    <menuitem id="menu_crypto_accounting_support" name="Accounting Support"
+              parent="menu_crypto_transaction_root" sequence="40"/>
+
+    <menuitem id="menu_crypto_fair_value_measurements" name="Fair-Value Measurements"
+              parent="menu_crypto_accounting_support" action="action_crypto_fair_value_measurement" sequence="10"/>
+
+    <menuitem id="menu_crypto_journal_entry_preparations" name="Journal-Entry Preparations"
+              parent="menu_crypto_accounting_support" action="action_crypto_journal_entry_preparation" sequence="20"/>
+
+    <menuitem id="menu_crypto_reconciliation_status" name="Reconciliation"
+              parent="menu_crypto_accounting_support" action="action_crypto_reconciliation_status" sequence="30"/>
+
+    <menuitem id="menu_crypto_journals" name="Crypto Journals"
+              parent="menu_crypto_accounting_support" action="action_crypto_journals" sequence="40"/>
+
+    <menuitem id="menu_crypto_account_payments" name="Crypto Account Payments"
+              parent="menu_crypto_accounting_support" action="action_crypto_account_payments" sequence="50"/>
+
+    <menuitem id="menu_crypto_review" name="Review" parent="menu_crypto_transaction_root" sequence="50"/>
+
+    <menuitem id="menu_crypto_audit_evidence_packages" name="Audit Evidence Packages"
+              parent="menu_crypto_review" action="action_crypto_audit_evidence_package" sequence="10"/>
+
+    <menuitem id="menu_crypto_tax_readiness_1099da" name="1099-DA Readiness"
+              parent="menu_crypto_review" action="action_crypto_tax_readiness_1099da" sequence="20"/>
+
+    <menuitem id="menu_crypto_form8949_reconciliation" name="Form 8949 Reconciliation"
+              parent="menu_crypto_review" action="action_crypto_form8949_reconciliation" sequence="30"/>
 
 
 </odoo>

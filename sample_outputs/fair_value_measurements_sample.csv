@@ -1,0 +1,2 @@
+measurement_id,source_transaction_id,asset_symbol,measurement_datetime,quantity,exchange_rate,reporting_currency,fair_value_amount,carrying_amount,unrealized_gain_loss_support,valuation_status,reviewer_notes
+FVM-DEMO-0001,0xdemo000000000000000000000000000000000001,ETH,2026-03-31T23:59:00Z,0.75000000,2500.00,USD,1875.00,1800.00,75.00,needs_review,Fake support row; valuation policy requires professional review

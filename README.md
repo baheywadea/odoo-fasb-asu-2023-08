@@ -2,7 +2,7 @@
 
 This repository provides a public reference implementation and documentation package for mapping digital-asset transaction data into ERP accounting workflows, CPA-reviewable audit evidence, and structured tax-reporting readiness outputs.
 
-The current codebase centers on an Odoo 19 module, `crypto_payment_sync`, that demonstrates digital-asset payment and transaction-record synchronization patterns. The surrounding documentation describes an implementation pathway for extending those patterns into FASB ASU 2023-08 fair-value accounting support, IRS Form 1099-DA field-mapping readiness, and IRS Form 8949 reconciliation support.
+The current codebase centers on an Odoo 19 module, `crypto_payment_sync`, that demonstrates digital-asset payment and transaction-record synchronization patterns. It now also includes prototype Odoo models for normalized transactions, fair-value support, journal-entry preparation, reconciliation status, audit evidence packages, 1099-DA readiness, and Form 8949 reconciliation support.
 
 Wording is intentionally conservative: this repository is a reference implementation and standards-mapping framework, not a government-approved filing system or substitute for professional review.
 
@@ -13,12 +13,13 @@ Wording is intentionally conservative: this repository is a reference implementa
 ## What the Project Supports
 
 - Digital-asset transaction ingestion and synchronization inside Odoo.
-- A normalized digital-asset ledger concept for transaction, wallet, network, and provider records.
-- ERP journal-entry preparation and accounting traceability workflows.
-- FASB ASU 2023-08 fair-value measurement support, including mapping concepts for transaction-date and reporting-date valuation.
-- CPA-reviewable audit evidence package design, including source references, reconciliation status, and reviewer notes.
-- IRS Form 1099-DA field-mapping readiness for future information-reporting workflows.
-- IRS Form 8949 reconciliation support for demonstration-level disposition reporting.
+- A normalized digital-asset ledger model for transaction, wallet, network, provider, status, and duplicate-detection records.
+- ERP journal-entry preparation support records and draft account move creation by manager action.
+- FASB ASU 2023-08 fair-value measurement support records for professional review.
+- CPA-reviewable audit evidence package summaries with source counts and reconciliation status.
+- IRS Form 1099-DA field-mapping readiness support records.
+- IRS Form 8949 reconciliation support records.
+- Read-only Crypto APIs adapter interfaces and fake fixtures for normalization tests.
 
 ## What the Project Does Not Do
 
@@ -50,6 +51,7 @@ All accounting and tax-related outputs should be treated as reviewable support m
 │   ├── data/                             # Odoo seed records and scheduled actions
 │   ├── models/                           # Odoo models for currencies, wallets, networks, transactions, and payments
 │   ├── security/                         # Odoo access control CSV
+│   ├── services/                         # Read-only Crypto APIs adapter and normalizers
 │   ├── static/                           # Module marketplace assets and frontend JavaScript
 │   ├── views/                            # Odoo XML views, menus, and templates
 │   └── __manifest__.py                   # Odoo module manifest
@@ -67,7 +69,7 @@ All accounting and tax-related outputs should be treated as reviewable support m
 
 ## Quick Start
 
-The repository currently provides an Odoo module plus documentation and demonstration data. The complete compliance engine and reporting modules described in the roadmap are planned implementation phases.
+The repository currently provides an Odoo module, read-only adapter helpers, prototype accounting-support models, documentation, and demonstration data. Live API calls and full Odoo functional validation require a configured Odoo 19 development environment.
 
 ### Documentation-Only Review
 
@@ -78,6 +80,13 @@ ls docs sample_data sample_outputs examples
 ```
 
 Review the architecture and standards-mapping documents in `docs/`. The sample files use fake data only and are intended to demonstrate expected input and output shapes.
+
+Run local static and unit checks:
+
+```bash
+python3 -X pycache_prefix=/private/tmp/fasb_pycache -m compileall crypto_payment_sync
+python3 -m unittest tests/test_services.py
+```
 
 ### Prototype Odoo Module Review
 
@@ -107,7 +116,10 @@ The sample workflow is a demonstration pattern. It is designed to support profes
 
 ## Documentation Index
 
+- [Current State](docs/current_state.md)
+- [Implementation Plan](docs/implementation_plan.md)
 - [Architecture](docs/architecture.md)
+- [Crypto APIs Integration](docs/cryptoapis_integration.md)
 - [FASB ASU 2023-08 Mapping](docs/fasb_asu_2023_08_mapping.md)
 - [IRS Form 1099-DA Mapping Readiness](docs/irs_1099_da_mapping.md)
 - [Form 8949 Reconciliation Support](docs/form_8949_reconciliation.md)
@@ -119,9 +131,17 @@ The sample workflow is a demonstration pattern. It is designed to support profes
 ## Sample Files
 
 - `sample_data/digital_asset_transactions.csv` - fake transaction source data.
+- `sample_data/cryptoapis_evm_transactions_sample.json` - fake Crypto APIs-style EVM transaction fixture.
+- `sample_data/cryptoapis_utxo_transactions_sample.json` - fake UTXO-style transaction fixture.
+- `sample_data/cryptoapis_exchange_rates_sample.json` - fake exchange-rate fixture.
+- `sample_outputs/normalized_transactions_sample.csv` - demonstration normalized ledger output.
 - `sample_outputs/fair_value_records_sample.csv` - demonstration fair-value support records.
+- `sample_outputs/fair_value_measurements_sample.csv` - demonstration fair-value measurement output.
 - `sample_outputs/journal_entries_sample.csv` - demonstration ERP journal-entry preparation rows.
+- `sample_outputs/journal_entry_preparation_sample.csv` - demonstration journal-entry preview lines.
+- `sample_outputs/reconciliation_status_sample.csv` - demonstration reconciliation status rows.
 - `sample_outputs/form_8949_reconciliation_sample.csv` - demonstration reconciliation support rows.
+- `sample_outputs/1099_da_readiness_sample.csv` - demonstration 1099-DA readiness rows.
 - `sample_outputs/audit_evidence_package_summary.md` - example reviewer-facing evidence summary.
 - `examples/sample_workflow.md` - concise end-to-end demonstration workflow.
 

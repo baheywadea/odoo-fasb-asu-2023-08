@@ -5,11 +5,15 @@
         <field name="arch" type="xml">
             <list string="Crypto Networks">
                 <field name="name"/>
-                                <field name="technical_name"/>
+                <field name="technical_name"/>
+                <field name="cryptoapis_network"/>
                 <field name="blockchain_id"/>
                 <field name="chain_id"/>
                 <field name="is_testnet"/>
+                <field name="is_evm_compatible"/>
+                <field name="native_asset_symbol"/>
                 <field name="rpc_url"/>
+                <field name="explorer_url"/>
                 <field name="active"/>
             </list>
         </field>
@@ -28,10 +32,14 @@
                     <group>
                         <field name="name"/>
                         <field name="technical_name"/>
+                        <field name="cryptoapis_network"/>
                         <field name="blockchain_id"/>
                         <field name="chain_id"/>
                         <field name="is_testnet"/>
+                        <field name="is_evm_compatible"/>
+                        <field name="native_asset_symbol"/>
                         <field name="rpc_url"/>
+                        <field name="explorer_url"/>
                         <field name="active"/>
                     </group>
                 </sheet>

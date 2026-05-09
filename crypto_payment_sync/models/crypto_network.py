@@ -14,9 +14,13 @@ class CryptoNetwork(models.Model):
 
     name = fields.Char(string="Network Name", required=True)  # e.g. mainnet, sepolia
     technical_name = fields.Char(string="Technical Name", required=True)
+    cryptoapis_network = fields.Char(string="Crypto APIs Network")
     chain_id = fields.Integer(string="Chain ID", required=True)
     is_testnet = fields.Boolean(string="Is Testnet")
+    is_evm_compatible = fields.Boolean(string="EVM Compatible")
+    native_asset_symbol = fields.Char(string="Native Asset Symbol")
     rpc_url = fields.Char(string="RPC URL", required=True)
+    explorer_url = fields.Char(string="Explorer URL")
     # currency_code = fields.Char(string="Currency Code", required=True)
     blockchain_id = fields.Many2one('crypto.blockchain', string="Blockchain", required=True)
     active = fields.Boolean(default=True)

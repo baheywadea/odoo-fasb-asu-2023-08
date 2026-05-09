@@ -1,0 +1,510 @@
+<odoo>
+    <record id="view_crypto_normalized_transaction_list" model="ir.ui.view">
+        <field name="name">crypto.normalized.transaction.list</field>
+        <field name="model">crypto.normalized.transaction</field>
+        <field name="arch" type="xml">
+            <list string="Normalized Transactions">
+                <field name="timestamp"/>
+                <field name="source_provider"/>
+                <field name="network_id"/>
+                <field name="asset_symbol"/>
+                <field name="quantity"/>
+                <field name="transaction_type"/>
+                <field name="processing_status"/>
+                <field name="transaction_hash"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_normalized_transaction_form" model="ir.ui.view">
+        <field name="name">crypto.normalized.transaction.form</field>
+        <field name="model">crypto.normalized.transaction</field>
+        <field name="arch" type="xml">
+            <form string="Normalized Transaction">
+                <header>
+                    <button name="action_mark_needs_review" type="object" string="Needs Review"/>
+                    <button name="action_mark_reviewed" type="object" string="Mark Reviewed"/>
+                    <field name="processing_status" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="source_provider"/>
+                            <field name="provider_id"/>
+                            <field name="source_transaction_id"/>
+                            <field name="transaction_hash"/>
+                            <field name="timestamp"/>
+                        </group>
+                        <group>
+                            <field name="blockchain_id"/>
+                            <field name="network_id"/>
+                            <field name="wallet_id"/>
+                            <field name="wallet_address_id"/>
+                            <field name="chain_reference"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="asset_id"/>
+                            <field name="asset_symbol"/>
+                            <field name="asset_contract_address"/>
+                            <field name="quantity"/>
+                            <field name="transaction_type"/>
+                        </group>
+                        <group>
+                            <field name="fee_quantity"/>
+                            <field name="fee_asset_symbol"/>
+                            <field name="counterparty"/>
+                            <field name="payload_hash" readonly="1"/>
+                            <field name="duplicate_key" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Review">
+                            <group>
+                                <field name="exception_reason"/>
+                                <field name="reviewer_notes"/>
+                            </group>
+                        </page>
+                        <page string="Raw Payload">
+                            <field name="raw_payload" nolabel="1"/>
+                        </page>
+                        <page string="Related Support">
+                            <group>
+                                <field name="fair_value_measurement_ids" readonly="1"/>
+                                <field name="journal_preparation_ids" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_crypto_normalized_transaction_search" model="ir.ui.view">
+        <field name="name">crypto.normalized.transaction.search</field>
+        <field name="model">crypto.normalized.transaction</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="transaction_hash"/>
+                <field name="source_transaction_id"/>
+                <field name="asset_symbol"/>
+                <filter name="needs_review" string="Needs Review" domain="[('processing_status','=','needs_review')]"/>
+                <filter name="exceptions" string="Exceptions" domain="[('processing_status','=','exception')]"/>
+                <separator/>
+                <filter name="group_provider" string="Provider" domain="[]" context="{'group_by':'source_provider'}"/>
+                <filter name="group_network" string="Network" domain="[]" context="{'group_by':'network_id'}"/>
+                <filter name="group_asset" string="Asset" domain="[]" context="{'group_by':'asset_symbol'}"/>
+                <filter name="group_status" string="Status" domain="[]" context="{'group_by':'processing_status'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_crypto_normalized_transaction" model="ir.actions.act_window">
+        <field name="name">Normalized Transactions</field>
+        <field name="res_model">crypto.normalized.transaction</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_crypto_normalized_transaction_search"/>
+    </record>
+
+    <record id="action_crypto_normalized_transaction_exceptions" model="ir.actions.act_window">
+        <field name="name">Exceptions</field>
+        <field name="res_model">crypto.normalized.transaction</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('processing_status','=','exception')]</field>
+        <field name="search_view_id" ref="view_crypto_normalized_transaction_search"/>
+    </record>
+
+    <record id="view_crypto_fair_value_measurement_list" model="ir.ui.view">
+        <field name="name">crypto.fair.value.measurement.list</field>
+        <field name="model">crypto.fair.value.measurement</field>
+        <field name="arch" type="xml">
+            <list string="Fair-Value Measurements">
+                <field name="measurement_datetime"/>
+                <field name="asset_symbol"/>
+                <field name="quantity"/>
+                <field name="exchange_rate"/>
+                <field name="fair_value_amount"/>
+                <field name="unrealized_gain_loss_amount"/>
+                <field name="valuation_status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_fair_value_measurement_form" model="ir.ui.view">
+        <field name="name">crypto.fair.value.measurement.form</field>
+        <field name="model">crypto.fair.value.measurement</field>
+        <field name="arch" type="xml">
+            <form string="Fair-Value Measurement">
+                <header>
+                    <button name="action_mark_reviewed" type="object" string="Mark Reviewed"/>
+                    <field name="valuation_status" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="normalized_transaction_id"/>
+                            <field name="asset_id"/>
+                            <field name="asset_symbol"/>
+                            <field name="measurement_datetime"/>
+                        </group>
+                        <group>
+                            <field name="pricing_source"/>
+                            <field name="source_api_provider"/>
+                            <field name="reporting_currency_id"/>
+                            <field name="exchange_rate"/>
+                            <field name="quantity"/>
+                            <field name="fair_value_amount" readonly="1"/>
+                            <field name="carrying_amount"/>
+                            <field name="unrealized_gain_loss_amount" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Review">
+                            <field name="principal_market_notes"/>
+                            <field name="reviewer_notes"/>
+                        </page>
+                        <page string="Raw Payload">
+                            <field name="raw_payload" nolabel="1"/>
+                            <field name="payload_hash" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_crypto_fair_value_measurement_search" model="ir.ui.view">
+        <field name="name">crypto.fair.value.measurement.search</field>
+        <field name="model">crypto.fair.value.measurement</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="asset_symbol"/>
+                <filter name="needs_review" string="Needs Review" domain="[('valuation_status','=','needs_review')]"/>
+                <filter name="exceptions" string="Exceptions" domain="[('valuation_status','=','exception')]"/>
+                <separator/>
+                <filter name="group_asset" string="Asset" domain="[]" context="{'group_by':'asset_symbol'}"/>
+                <filter name="group_status" string="Status" domain="[]" context="{'group_by':'valuation_status'}"/>
+                <filter name="group_source" string="Pricing Source" domain="[]" context="{'group_by':'pricing_source'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_crypto_fair_value_measurement" model="ir.actions.act_window">
+        <field name="name">Fair-Value Measurements</field>
+        <field name="res_model">crypto.fair.value.measurement</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_crypto_fair_value_measurement_search"/>
+    </record>
+
+    <record id="view_crypto_journal_entry_preparation_list" model="ir.ui.view">
+        <field name="name">crypto.journal.entry.preparation.list</field>
+        <field name="model">crypto.journal.entry.preparation</field>
+        <field name="arch" type="xml">
+            <list string="Journal-Entry Preparations">
+                <field name="entry_date"/>
+                <field name="name"/>
+                <field name="journal_id"/>
+                <field name="total_debit"/>
+                <field name="total_credit"/>
+                <field name="is_balanced"/>
+                <field name="status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_journal_entry_preparation_form" model="ir.ui.view">
+        <field name="name">crypto.journal.entry.preparation.form</field>
+        <field name="model">crypto.journal.entry.preparation</field>
+        <field name="arch" type="xml">
+            <form string="Journal-Entry Preparation">
+                <header>
+                    <button name="action_mark_prepared" type="object" string="Mark Prepared"/>
+                    <button name="action_mark_reviewed" type="object" string="Approve for Posting"/>
+                    <button name="action_create_draft_move" type="object" string="Create Draft Journal Entry"
+                            groups="crypto_payment_sync.group_crypto_admin"/>
+                    <field name="status" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="entry_date"/>
+                            <field name="journal_id"/>
+                            <field name="normalized_transaction_id"/>
+                            <field name="fair_value_measurement_id"/>
+                        </group>
+                        <group>
+                            <field name="total_debit" readonly="1"/>
+                            <field name="total_credit" readonly="1"/>
+                            <field name="is_balanced" readonly="1"/>
+                            <field name="account_move_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <field name="line_ids">
+                        <list editable="bottom">
+                            <field name="name"/>
+                            <field name="account_id"/>
+                            <field name="debit"/>
+                            <field name="credit"/>
+                            <field name="source_note"/>
+                        </list>
+                    </field>
+                    <group>
+                        <field name="exception_reason"/>
+                        <field name="reviewer_notes"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_crypto_journal_entry_preparation_search" model="ir.ui.view">
+        <field name="name">crypto.journal.entry.preparation.search</field>
+        <field name="model">crypto.journal.entry.preparation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter name="needs_review" string="Needs Review" domain="[('status','=','needs_review')]"/>
+                <filter name="exceptions" string="Exceptions" domain="[('status','=','exception')]"/>
+                <separator/>
+                <filter name="group_status" string="Status" domain="[]" context="{'group_by':'status'}"/>
+                <filter name="group_journal" string="Journal" domain="[]" context="{'group_by':'journal_id'}"/>
+                <filter name="group_date" string="Entry Date" domain="[]" context="{'group_by':'entry_date'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_crypto_journal_entry_preparation" model="ir.actions.act_window">
+        <field name="name">Journal-Entry Preparations</field>
+        <field name="res_model">crypto.journal.entry.preparation</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_crypto_journal_entry_preparation_search"/>
+    </record>
+
+    <record id="view_crypto_reconciliation_status_list" model="ir.ui.view">
+        <field name="name">crypto.reconciliation.status.list</field>
+        <field name="model">crypto.reconciliation.status</field>
+        <field name="arch" type="xml">
+            <list string="Reconciliation Status">
+                <field name="period_start"/>
+                <field name="period_end"/>
+                <field name="name"/>
+                <field name="status"/>
+                <field name="exception_reason"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_reconciliation_status_form" model="ir.ui.view">
+        <field name="name">crypto.reconciliation.status.form</field>
+        <field name="model">crypto.reconciliation.status</field>
+        <field name="arch" type="xml">
+            <form string="Reconciliation Status">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="period_start"/>
+                            <field name="period_end"/>
+                            <field name="status"/>
+                        </group>
+                        <group>
+                            <field name="normalized_transaction_id"/>
+                            <field name="fair_value_measurement_id"/>
+                            <field name="journal_preparation_id"/>
+                            <field name="tax_1099da_id"/>
+                            <field name="form8949_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="exception_reason"/>
+                        <field name="reviewer_notes"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_crypto_reconciliation_status_search" model="ir.ui.view">
+        <field name="name">crypto.reconciliation.status.search</field>
+        <field name="model">crypto.reconciliation.status</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter name="exceptions" string="Exceptions" domain="[('status','=','exception')]"/>
+                <separator/>
+                <filter name="group_status" string="Status" domain="[]" context="{'group_by':'status'}"/>
+                <filter name="group_period" string="Period End" domain="[]" context="{'group_by':'period_end'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_crypto_reconciliation_status" model="ir.actions.act_window">
+        <field name="name">Reconciliation Status</field>
+        <field name="res_model">crypto.reconciliation.status</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_crypto_reconciliation_status_search"/>
+    </record>
+
+    <record id="view_crypto_audit_evidence_package_list" model="ir.ui.view">
+        <field name="name">crypto.audit.evidence.package.list</field>
+        <field name="model">crypto.audit.evidence.package</field>
+        <field name="arch" type="xml">
+            <list string="Audit Evidence Packages">
+                <field name="period_start"/>
+                <field name="period_end"/>
+                <field name="name"/>
+                <field name="status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_audit_evidence_package_form" model="ir.ui.view">
+        <field name="name">crypto.audit.evidence.package.form</field>
+        <field name="model">crypto.audit.evidence.package</field>
+        <field name="arch" type="xml">
+            <form string="Audit Evidence Package">
+                <header>
+                    <button name="action_generate_summary" type="object" string="Generate Summary"/>
+                    <field name="status" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="period_start"/>
+                        <field name="period_end"/>
+                    </group>
+                    <notebook>
+                        <page string="Included Records">
+                            <field name="normalized_transaction_ids"/>
+                            <field name="fair_value_measurement_ids"/>
+                            <field name="journal_preparation_ids"/>
+                            <field name="reconciliation_status_ids"/>
+                        </page>
+                        <page string="Summary">
+                            <field name="summary_markdown" nolabel="1" readonly="1"/>
+                        </page>
+                        <page string="Reviewer Notes">
+                            <field name="reviewer_notes" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crypto_audit_evidence_package" model="ir.actions.act_window">
+        <field name="name">Audit Evidence Packages</field>
+        <field name="res_model">crypto.audit.evidence.package</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_crypto_tax_readiness_1099da_list" model="ir.ui.view">
+        <field name="name">crypto.tax.readiness.1099da.list</field>
+        <field name="model">crypto.tax.readiness.1099da</field>
+        <field name="arch" type="xml">
+            <list string="1099-DA Readiness">
+                <field name="transaction_datetime"/>
+                <field name="asset_symbol"/>
+                <field name="quantity"/>
+                <field name="gross_proceeds_support"/>
+                <field name="transaction_hash"/>
+                <field name="status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_tax_readiness_1099da_form" model="ir.ui.view">
+        <field name="name">crypto.tax.readiness.1099da.form</field>
+        <field name="model">crypto.tax.readiness.1099da</field>
+        <field name="arch" type="xml">
+            <form string="1099-DA Readiness">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="normalized_transaction_id"/>
+                            <field name="transaction_datetime"/>
+                            <field name="asset_symbol"/>
+                            <field name="quantity"/>
+                            <field name="gross_proceeds_support"/>
+                        </group>
+                        <group>
+                            <field name="wallet_source_reference"/>
+                            <field name="transaction_hash"/>
+                            <field name="broker_source_reference"/>
+                            <field name="cost_basis_support"/>
+                            <field name="status"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="missing_data_notes"/>
+                        <field name="reviewer_notes"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crypto_tax_readiness_1099da" model="ir.actions.act_window">
+        <field name="name">1099-DA Readiness</field>
+        <field name="res_model">crypto.tax.readiness.1099da</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_crypto_form8949_reconciliation_list" model="ir.ui.view">
+        <field name="name">crypto.form8949.reconciliation.list</field>
+        <field name="model">crypto.form8949.reconciliation</field>
+        <field name="arch" type="xml">
+            <list string="Form 8949 Reconciliation">
+                <field name="date_acquired"/>
+                <field name="date_disposed"/>
+                <field name="description_of_property"/>
+                <field name="proceeds_support"/>
+                <field name="cost_basis_support"/>
+                <field name="gain_loss_support"/>
+                <field name="status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crypto_form8949_reconciliation_form" model="ir.ui.view">
+        <field name="name">crypto.form8949.reconciliation.form</field>
+        <field name="model">crypto.form8949.reconciliation</field>
+        <field name="arch" type="xml">
+            <form string="Form 8949 Reconciliation Support">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="normalized_transaction_id"/>
+                            <field name="description_of_property"/>
+                            <field name="date_acquired"/>
+                            <field name="date_disposed"/>
+                        </group>
+                        <group>
+                            <field name="proceeds_support"/>
+                            <field name="cost_basis_support"/>
+                            <field name="gain_loss_support" readonly="1"/>
+                            <field name="holding_period_support"/>
+                            <field name="status"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="source_links"/>
+                        <field name="reviewer_notes"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crypto_form8949_reconciliation" model="ir.actions.act_window">
+        <field name="name">Form 8949 Reconciliation</field>
+        <field name="res_model">crypto.form8949.reconciliation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

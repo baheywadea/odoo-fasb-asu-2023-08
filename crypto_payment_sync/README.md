@@ -1,6 +1,6 @@
 # Crypto Payment Sync
 
-`crypto_payment_sync` is an Odoo 19 reference module for digital-asset payment and transaction synchronization workflows. In this repository, it serves as the implemented foundation for a broader ERP-native digital-asset accounting and compliance support framework.
+`crypto_payment_sync` is an Odoo 19 reference module for digital-asset payment, transaction synchronization, and accounting workflow support. In this repository, it serves as the implemented foundation for a broader ERP-native digital-asset accounting and professional-review support framework.
 
 The module demonstrates Odoo-native records and views for payment providers, wallets, wallet addresses, blockchain networks, crypto currencies, EVM transaction details, account payments, and payment transaction callbacks.
 
@@ -17,6 +17,12 @@ Implemented or inspectable areas include:
 - QR payment page and status/callback controller routes.
 - EVM transaction record structure and source transaction details.
 - Odoo XML views, menus, access controls, data records, and frontend JavaScript.
+- Read-only Crypto APIs adapter interfaces and fixture-based normalizers.
+- Normalized digital-asset transaction records with duplicate-detection support.
+- Fair-value measurement support records.
+- Journal-entry preparation records and preview lines.
+- Reconciliation status and audit evidence package records.
+- 1099-DA readiness and Form 8949 reconciliation support records.
 
 ## Professional Review Boundary
 
@@ -28,7 +34,7 @@ Any accounting or tax outputs derived from this module should be treated as revi
 
 Some methods reference external API workflows and provider credentials. Use only sandbox or test credentials during development. Do not commit API keys, private keys, wallet seed phrases, webhook secrets, production logs, or real client data.
 
-Outbound payment execution, transaction signing, wallet management, or callback workflows require separate legal, regulatory, accounting, and security review before any production use.
+The new adapter layer under `services/` is read-only. Outbound payment execution, transaction signing, wallet management, or callback workflows require separate legal, regulatory, accounting, and security review before any production use.
 
 ## Development Notes
 
@@ -51,6 +57,7 @@ for path in Path("crypto_payment_sync").rglob("*.xml"):
     ET.parse(path)
 print("XML parse check passed")
 PY
+python3 -m unittest tests/test_services.py
 ```
 
 Full functional validation requires an Odoo 19 development database and configured test credentials.

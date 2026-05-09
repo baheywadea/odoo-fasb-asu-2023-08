@@ -1,0 +1,11 @@
+{
+  "data": {
+    "item": {
+      "fromAssetSymbol": "ETH",
+      "toAssetSymbol": "USD",
+      "rate": "2500.00",
+      "calculationTimestamp": 1775001540
+    }
+  },
+  "note": "Fake exchange-rate fixture for fair-value support examples."
+}
