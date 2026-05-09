@@ -4,7 +4,7 @@
 
 This repository is a public reference implementation and documentation package for an ERP-native digital-asset accounting and compliance infrastructure framework. It is designed to show how digital-asset transaction data can be mapped into Odoo/ERP accounting workflows, CPA-reviewable audit evidence, and structured tax-reporting readiness outputs.
 
-The project may support EB-2 NIW evidence as Exhibit P1-K. Keep all wording conservative, evidence-based, and aligned with the repository's actual contents.
+Keep all wording conservative, evidence-based, and aligned with the repository's actual contents.
 
 ## Do-Not-Overclaim Rules
 

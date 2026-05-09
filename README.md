@@ -4,7 +4,7 @@ This repository provides a public reference implementation and documentation pac
 
 The current codebase centers on an Odoo 19 module, `crypto_payment_sync`, that demonstrates digital-asset payment and transaction-record synchronization patterns. The surrounding documentation describes an implementation pathway for extending those patterns into FASB ASU 2023-08 fair-value accounting support, IRS Form 1099-DA field-mapping readiness, and IRS Form 8949 reconciliation support.
 
-This project is intended as **Exhibit P1-K: Public GitHub Repository and Documentation** for a technical EB-2 NIW RFE response. Wording is intentionally conservative: the repository is a reference implementation and standards-mapping framework, not a government-approved filing system or substitute for professional review.
+Wording is intentionally conservative: this repository is a reference implementation and standards-mapping framework, not a government-approved filing system or substitute for professional review.
 
 ![License: LGPL-3.0](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)
 ![Odoo Version](https://img.shields.io/badge/Odoo-19.0-714B67)
@@ -73,7 +73,7 @@ The repository currently provides an Odoo module plus documentation and demonstr
 
 ```bash
 git clone <repository-url>
-cd FASB
+cd odoo-fasb-asu-2023-08
 ls docs sample_data sample_outputs examples
 ```
 
