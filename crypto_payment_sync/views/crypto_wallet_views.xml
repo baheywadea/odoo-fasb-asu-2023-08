@@ -98,7 +98,7 @@
                             <field name="payment_provider_id"/>
                             <field name="network_id"/>
                             <field name="xpub"/>
-                            <field name="mnemonic"/>
+                            <field name="mnemonic" password="True" groups="crypto_payment_sync.group_crypto_admin"/>
                             <field name="wallet_id"/>
                             <field name="deposit_address"/>
                             <field name="confirmed_balance" digits="[12,6]"  readonly="1"/>

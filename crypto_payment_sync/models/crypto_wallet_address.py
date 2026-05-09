@@ -1,12 +1,8 @@
-import requests
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
-import logging
 from datetime import datetime, timedelta
 from odoo.http import request
 import time
-
-_logger = logging.getLogger(__name__)
 
 
 class CryptoWalletAddress(models.Model):
@@ -51,6 +47,23 @@ class CryptoWalletAddress(models.Model):
             record['events_count'] = self.env['crypto.wallet.address.event'].search_count(
                 [('address_id', '=', record.id)])
 
+    def _cryptoapis_path_parts(self):
+        self.ensure_one()
+        return self.wallet_id._cryptoapis_path_parts()
+
+    def _cryptoapis_address_latest_path(self, suffix):
+        self.ensure_one()
+        family, blockchain, network = self._cryptoapis_path_parts()
+        family_prefix = "%s/" % family if family else ""
+        return f"addresses-latest/{family_prefix}{blockchain}/{network}/{self.name}/{suffix.lstrip('/')}"
+
+    def _cryptoapis_blockchain_events_path(self, suffix=""):
+        self.ensure_one()
+        _family, blockchain, network = self._cryptoapis_path_parts()
+        suffix = suffix.strip("/")
+        path = f"blockchain-events/{blockchain}/{network}"
+        return f"{path}/{suffix}" if suffix else path
+
     def get_balance(self):
 
         for record in self:
@@ -59,34 +72,12 @@ class CryptoWalletAddress(models.Model):
                 time_diff = datetime.now() - record.last_synced_balance
             else:
                 time_diff = timedelta(hours=1)
-            _logger.info('time_diff ' + str(time_diff.total_seconds()))
             # Check if more than one minute
             if time_diff.total_seconds() > 60:
-                _logger.info('Inside IF')
-                blockchain = record.wallet_id.blockchain_id.name.lower()
-                network = record.wallet_id.network_id.name.lower().replace('testnet', "").replace(blockchain,
-                                                                                                  "").replace(" ", "")
-                address = record.name
-                url = f"https://rest.cryptoapis.io/addresses-latest/evm/{blockchain}/{network}/{address}/balance?context=OdooGetAddressBalance"
-                if 'ether' in blockchain:
-                    url = f"https://rest.cryptoapis.io/addresses-latest/evm/{blockchain}/{network}/{address}/balance?context=OdooGetAddressBalance"
-
-                if 'bitcoin' in blockchain:
-                    url = f"https://rest.cryptoapis.io/addresses-latest/utxo/{blockchain}/{network}/{address}/balance?context=OdooGetAddressBalance"
-                if 'xrp' in blockchain:
-                    url = f"https://rest.cryptoapis.io/addresses-latest/{blockchain}/{network}/{address}/balance?context=OdooGetAddressBalance"
-
-                headers = {
-                    "X-API-Key": record.wallet_id.payment_provider_id.cryptoapis_api_key
-                }
-                response = requests.get(url, headers=headers)
-                if response.status_code != 200:
-                    raise Exception(f"Failed to fetch crypto currencies: {response.text}")
-                _logger.info('response' + str(response))
-                data = response.json().get("data", [])
-                _logger.info('response Json Data' + str(data))
-                item = data.get("item", [])
-                _logger.info('response Json Item' + str(item))
+                item = record.wallet_id.payment_provider_id._cryptoapis_get(
+                    record._cryptoapis_address_latest_path("balance"),
+                    params={"context": "OdooGetAddressBalance"},
+                ).get("data", {}).get("item", {})
                 confirmedBalance = item.get("confirmedBalance", [])
                 amount = confirmedBalance.get("amount")
                 record.write({'confirmed_balance': amount, 'last_synced_balance': fields.Datetime.now()})
@@ -94,26 +85,14 @@ class CryptoWalletAddress(models.Model):
     def get_confirmed_transactions(self):
 
         for record in self:
-            blockchain = record.wallet_id.blockchain_id.name.lower()
-            network = record.wallet_id.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(
-                " ", "")
-            address = record.name
-            if 'ether' in blockchain:
-                url = f"https://rest.cryptoapis.io/addresses-latest/evm/{blockchain}/{network}/{address}/transactions?context=OdooEVMGetConfirmedTransactions&limit=10&sortingOrder=descending"
-            if 'bitcoin' in blockchain:
-                url = f"https://rest.cryptoapis.io/addresses-latest/utxo/{blockchain}/{network}/{address}/transactions?context=OdooEVMGetConfirmedTransactions&limit=10&sortingOrder=descending"
-            if 'xrp' in blockchain:
-                url = f"https://rest.cryptoapis.io/addresses-latest/{blockchain}/{network}/{address}/transactions?context=OdooEVMGetConfirmedTransactions&limit=10&sortingOrder=descending"
-
-            headers = {
-                "X-API-Key": record.wallet_id.payment_provider_id.cryptoapis_api_key
-            }
-            response = requests.get(url, headers=headers)
-            if response.status_code != 200:
-                raise Exception(f"Failed to fetch crypto transactions: {response.text}")
-            _logger.info('response' + str(response))
-            data = response.json().get("data", [])
-            _logger.info('response Json Data' + str(data))
+            data = record.wallet_id.payment_provider_id._cryptoapis_get(
+                record._cryptoapis_address_latest_path("transactions"),
+                params={
+                    "context": "OdooEVMGetConfirmedTransactions",
+                    "limit": record.wallet_id.payment_provider_id._cryptoapis_page_size(),
+                    "sortingOrder": "descending",
+                },
+            ).get("data", {})
             items = data.get("items", [])
             transaction_obj = self.env['crypto.transaction.evm']
             for item in items:
@@ -126,23 +105,8 @@ class CryptoWalletAddress(models.Model):
         for rec in self:
             if rec.order or param_order:
                 order = param_order or rec.order
-                api_key = rec.wallet_id.payment_provider_id.cryptoapis_api_key
                 website = request.env['website'].get_current_website()
                 odoo_base_url = website.domain or request.env['ir.config_parameter'].sudo().get_param('web.base.url')
-                blockchain = rec.wallet_id.blockchain_id.name.lower()
-                network = rec.wallet_id.network_id.name.lower().replace(" ", "-").replace(blockchain, "").replace("testnet",
-                                                                                                         "").replace(
-                    "-",
-                    "")
-
-                # CryptoAPIs endpoint to derive address from xpub
-
-                url = f"https://rest.cryptoapis.io/blockchain-events/{blockchain}/{network}/address-coins-transactions-confirmed"
-
-                headers = {
-                    "Content-Type": "application/json",
-                    "X-API-Key": api_key
-                }
 
                 payload = {
                     "context": "create_address_event_from_odoo",
@@ -156,13 +120,10 @@ class CryptoWalletAddress(models.Model):
                         }
                     }
                 }
-                _logger.info('Reuested URL' + str(url))
-                response = requests.post(url, json=payload, headers=headers)
-                _logger.info('Response Statuse Code' + str(response.status_code))
-                if response.status_code != 200 and response.status_code != 201 :
-                    raise UserError(_("Event creation failed: %s") % response.text)
-
-                event_data = response.json().get('data', {}).get('item', {})
+                event_data = rec.wallet_id.payment_provider_id._cryptoapis_post(
+                    rec._cryptoapis_blockchain_events_path("address-coins-transactions-confirmed"),
+                    payload=payload,
+                ).get('data', {}).get('item', {})
                 self.env['crypto.wallet.address.event'].create({'reference_id': event_data.get('referenceId'),
                                                                 "address_id": rec.id,
                                                                 "callback_secretkey": event_data.get(
@@ -186,27 +147,14 @@ class CryptoWalletAddress(models.Model):
         """
         self.ensure_one()
 
-        api_key = self.wallet_id.payment_provider_id.cryptoapis_api_key
-        if not api_key:
-            raise UserError(_("CryptoAPIs API key is missing on the payment provider."))
+        provider = self.wallet_id.payment_provider_id
+        provider._cryptoapis_headers()
 
-        # ✅ Stable base url (do NOT use request.env/website.domain)
+        # Use Odoo's configured base URL for the webhook callback target.
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url') or ''
         base_url = base_url.rstrip('/')
 
-        blockchain = (self.wallet_id.blockchain_id.name or '').lower().strip()
-        network = (self.wallet_id.network_id.name or '').lower().strip()
-
-        # ⚠️ Better: store CryptoAPIs network code explicitly in your crypto.network model.
-        # Keeping your normalization but safer:
-        network = network.replace(" ", "-").replace(blockchain, "").replace("testnet", "")
-        network = network.replace("-", "").strip()
-
-        url = f"https://rest.cryptoapis.io/blockchain-events/{blockchain}/{network}/address-coins-transactions-confirmed"
-
-        headers = {"Content-Type": "application/json", "X-API-Key": api_key}
-
-        # ✅ Ensure address is a string
+        # Ensure address is a string.
         address_str = self.name.name if hasattr(self.name, "name") else self.name
         address_str = (address_str or "").strip()
         if not address_str:
@@ -220,26 +168,19 @@ class CryptoWalletAddress(models.Model):
                 "item": {
                     "address": address_str,
                     "allowDuplicates": False,
-                    "callbackSecretKey": str(secret_token),  # ✅ MUST be string
-                    "callbackUrl": callback_url,  # ✅ includes tx_id
+                    "callbackSecretKey": str(secret_token),
+                    "callbackUrl": callback_url,
                     "receiveCallbackOn": 3
                 }
             }
         }
 
-        _logger.info("CryptoAPIs Event URL: %s", url)
-        _logger.info("CryptoAPIs Payload: %s", payload)
+        event_data = provider._cryptoapis_post(
+            self._cryptoapis_blockchain_events_path("address-coins-transactions-confirmed"),
+            payload=payload,
+        ).get('data', {}).get('item', {}) or {}
 
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
-        _logger.info("CryptoAPIs Response Code: %s", response.status_code)
-        _logger.info("CryptoAPIs Response Body: %s", response.text)
-
-        if response.status_code not in (200, 201):
-            raise UserError(_("Event creation failed: %s") % response.text)
-
-        event_data = (response.json() or {}).get('data', {}).get('item', {}) or {}
-
-        # ✅ Store event record (avoid duplicates if you want: search first by tx/address/event_type)
+        # Store the returned event reference without logging callback secrets.
         self.env['crypto.wallet.address.event'].sudo().create({
             "address_id": self.id,
             "callback_secretkey": event_data.get("callbackSecretKey") or str(secret_token),
@@ -249,7 +190,6 @@ class CryptoWalletAddress(models.Model):
             "event_type": event_data.get("eventType"),
             "active": event_data.get("isActive"),
             "reference_id": event_data.get("referenceId"),
-            # (اختياري) احفظ tx_id عندك في event model لو عندك field
             # "payment_transaction_id": int(tx_id),
         })
 
@@ -259,31 +199,27 @@ class CryptoWalletAddress(models.Model):
 
 
             for record in self:
+                provider = record.wallet_id.payment_provider_id
                 total_items = 100000
-                max_count = 500
+                max_count = provider._cryptoapis_page_size() * provider._cryptoapis_max_pages()
                 count = 0
                 times = 0
-                limit = 50
+                limit = provider._cryptoapis_page_size()
                 while count < total_items and count < max_count:
-                    time.sleep(2)
+                    time.sleep(provider._cryptoapis_request_delay())
                     offset = times * limit
-                    blockchain = record.wallet_id.blockchain_id.name.lower()
-                    network = record.wallet_id.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(
-                        " ", "")
-                    address = record.name
-                    url = f"https://rest.cryptoapis.io/blockchain-events/{blockchain}/{network}?context=list_event_odoo&limit=50&offset=" + str(offset)
-                    headers = {
-                        "X-API-Key": record.wallet_id.payment_provider_id.cryptoapis_api_key
-                    }
-                    response = requests.get(url, headers=headers)
-                    if response.status_code != 200:
-                        raise Exception(f"Failed to fetch crypto transactions: {response.text}")
-                    _logger.info('response' + str(response))
-                    data = response.json().get("data", [])
-                    _logger.info('response Json Data' + str(data))
+                    data = provider._cryptoapis_get(
+                        record._cryptoapis_blockchain_events_path(),
+                        params={
+                            "context": "list_event_odoo",
+                            "limit": limit,
+                            "offset": offset,
+                        },
+                    ).get("data", {})
+                    total_items = data.get("total") or total_items
                     items = data.get("items", [])
                     if len(items) <= 0:
-                        break;
+                        break
                     event_obj = self.env['crypto.wallet.address.event']
                     for item in items:
                         count = count + 1
@@ -304,4 +240,3 @@ class CryptoWalletAddress(models.Model):
 
                             })
                     times = times + 1
-

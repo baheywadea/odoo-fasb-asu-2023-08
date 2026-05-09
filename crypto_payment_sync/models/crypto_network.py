@@ -1,9 +1,6 @@
-from odoo import models, fields, api,_
+from odoo import models, fields, api, _
 import logging
-# from odoo.addons.crypto_payment_sync.const import SUPPORTED_CURRENCIES
-import requests
 import time
-import datetime
 from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
@@ -26,39 +23,49 @@ class CryptoNetwork(models.Model):
     active = fields.Boolean(default=True)
 
     def sync_wallets(self):
+        skipped = []
+        synced_wallets = 0
         for network in self:
-            provider = self.env['payment.provider'].search([('code', '=', 'crypto')])
+            provider = self.env['payment.provider'].search([('code', '=', 'crypto')], limit=1)
             if provider:
-                total_items = 100000;
+                if not provider.cryptoapis_api_key:
+                    raise UserError(_("Set a Crypto APIs API key before syncing wallets."))
+                total_items = 100000
                 count = 0
-                times = 0
-                limit = 50
-                while count < total_items:
-                    time.sleep(2)
-                    offset = times * limit
-                    # CryptoAPIs endpoint to derive address from xpub
-
-                    url = f"https://rest.cryptoapis.io/hd-wallets/manage/{network.blockchain_id.technical_name}/{network.technical_name}"
-
-                    headers = {
-                        "Content-Type": "application/json",
-                        "X-API-Key": provider.cryptoapis_api_key
-                    }
-                    url +="?context=list_hd_wallet_to_odoo&limit=50&offset="+str(offset)
-
-
-                    response = requests.get(url, headers=headers)
-                    if response.status_code != 200:
-                        raise Exception(f"Failed to fetch crypto currencies: {response.text}")
-                    _logger.info('response' + str(response))
-                    data = response.json().get("data", [])
-                    total_items = data.get("total")
-                    _logger.info('response Json Data' + str(data))
+                page = 0
+                limit = provider._cryptoapis_page_size()
+                while count < total_items and page < provider._cryptoapis_max_pages():
+                    time.sleep(provider._cryptoapis_request_delay())
+                    offset = page * limit
+                    blockchain_slug = network.blockchain_id.cryptoapis_slug or network.blockchain_id.technical_name
+                    network_slug = network.cryptoapis_network or network.technical_name
+                    try:
+                        data = provider._cryptoapis_get(
+                            f"hd-wallets/manage/{blockchain_slug}/{network_slug}",
+                            params={
+                                "context": "list_hd_wallet_to_odoo",
+                                "limit": limit,
+                                "offset": offset,
+                            },
+                        ).get("data") or {}
+                    except UserError as exc:
+                        skipped.append(f"{network.blockchain_id.name} / {network.name}")
+                        _logger.warning(
+                            "Skipping Crypto APIs wallet sync for %s / %s: %s",
+                            network.blockchain_id.name,
+                            network.name,
+                            exc,
+                        )
+                        break
+                    total_items = data.get("total") or 0
                     assets = data.get("items", [])
-                    _logger.info('response Json assets' + str(assets))
+                    if not assets:
+                        break
                     for asset in assets:
                         count = count + 1
                         extendedPublicKey = asset.get("extendedPublicKey")
+                        if not extendedPublicKey:
+                            continue
                         # name = asset.get("name")
                         # referenceid = asset.get("referenceId")
                         wallet_by_name = self.env['crypto.wallet'].search([('xpub', '=', extendedPublicKey)])
@@ -71,6 +78,20 @@ class CryptoNetwork(models.Model):
                                 'payment_provider_id': provider.id,
                                 'active': True,
                             })
+                            synced_wallets += 1
                         if wallet_by_name:
                             wallet_by_name.write({'xpub': extendedPublicKey})
-                    times = times + 1
+                    page = page + 1
+        message = _("Wallet sync completed. Created %s wallet(s).") % synced_wallets
+        if skipped:
+            message += _(" Skipped %s unsupported or unavailable network(s).") % len(skipped)
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Crypto APIs Wallet Sync"),
+                "message": message,
+                "type": "warning" if skipped else "success",
+                "sticky": bool(skipped),
+            },
+        }

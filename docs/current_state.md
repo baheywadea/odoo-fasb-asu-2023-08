@@ -79,20 +79,16 @@ The current payment flow can:
 6. Create or update EVM transaction records.
 7. Link crypto transaction records to Odoo payment/accounting objects.
 
-This supports source traceability and payment workflow evidence. It does not yet provide a normalized accounting ledger, fair-value measurement support records, draft journal-entry preparation records, audit evidence packages, or tax-reporting readiness records.
+This supports source traceability and payment workflow evidence. The repository now also includes prototype normalized transaction, fair-value measurement, journal-entry preparation, reconciliation, audit evidence package, and tax-reporting readiness records for professional-review support.
 
 ## Existing Limitations
 
-- API logic is embedded directly in Odoo model methods.
-- There is no separated read-only Crypto APIs adapter layer.
-- Some existing methods reference outbound payment, transaction preparation, signing, broadcast, mnemonic, or private-key-adjacent workflows. Those are outside the read-only accounting-support scope and require separate professional and security review before any real use.
+- API calls from Odoo models are routed through provider-level Crypto APIs helpers where practical; the standalone `services/` adapter remains available for fixture-driven tests and future separation.
+- Some legacy methods reference outbound payment, transaction preparation, signing, broadcast, mnemonic, or private-key-adjacent workflows. Those paths are disabled by default through system parameters and are outside the recommended read-only accounting-support scope.
 - The generic `crypto.transaction.fetch_crypto_transactions()` method is still a placeholder.
-- Normalized transaction records are not yet modeled separately from EVM transaction details.
-- Duplicate detection is limited and not yet expressed as a normalized ledger idempotency rule.
-- Fair-value measurement support is not modeled as reviewable accounting support.
-- Journal-entry support records are not separated from Odoo posting workflows.
-- Audit evidence packages and reconciliation summaries are documented but not implemented.
-- 1099-DA readiness and Form 8949 reconciliation outputs are sample/documentation artifacts, not Odoo models.
+- Normalized accounting-support records exist as prototype Odoo models and still need broader functional validation in an Odoo 19 database.
+- Duplicate detection exists for normalized transaction records and should be expanded across live ingestion flows.
+- Fair-value, journal-entry preparation, reconciliation, audit evidence, 1099-DA readiness, and Form 8949 support records exist as reviewable support models; they are not final filings or professional determinations.
 - Full Odoo installation testing has not been run in this workspace.
 
 ## Implemented Versus Planned

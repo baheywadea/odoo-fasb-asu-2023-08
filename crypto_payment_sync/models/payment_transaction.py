@@ -7,7 +7,7 @@ import secrets
 from odoo import _, fields, models
 from werkzeug.urls import url_encode
 from odoo.http import request
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 from werkzeug.urls import url_decode, url_parse
 
 _logger = logging.getLogger(__name__)
@@ -129,13 +129,13 @@ class PaymentTransaction(models.Model):
             'crypto_network': self.crypto_address.wallet_id.network_id.name,
         })
 
-        _logger.info("Rendering Values : \n%s", str(processing_values))
+        _logger.debug("Prepared crypto rendering values for transaction %s", self.reference)
 
         # Return processing_values (same behavior as your existing code)
         return processing_values
 
     def _process(self, provider_code, notification_data):
-        _logger.info("crypto Payment _process_notification_data : \n%s", str(notification_data))
+        _logger.info("Processing crypto payment notification for transaction %s", self.reference)
         # super()._process(provider_code,notification_data)
         if provider_code != 'crypto':
             return super()._process(provider_code, notification_data)
@@ -179,21 +179,16 @@ class PaymentTransaction(models.Model):
         res = super()._get_specific_rendering_values(processing_values)
         if self.provider_code != 'crypto':
             return res
-        api_key = "SK_KWT_vVZlnnAqu8jRByOWaRPNId4ShzEDNt256dvnjebuyzo52dXjAfRx2ixW5umjWSUx"
+        api_key = self.env['ir.config_parameter'].sudo().get_param('crypto_payment_sync.myfatoorah_api_key')
+        if not api_key:
+            raise UserError(_("Configure crypto_payment_sync.myfatoorah_api_key before using MyFatoorah rendering."))
         api_url = "{}/v2/SendPayment".format("https://apitest.myfatoorah.com")
         payload = self._prepare_crypto_invoice_link_payload(processing_values)
-        # Log MyFatoorah Payload
-        _logger.info("crypto Payload is :\n%s", payload)
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + api_key}
-        response = requests.post(api_url, data=json.dumps(payload), headers=headers)
-        _logger.info("crypto Response is :\n%s", response)
-        url = "https://portal.myfatoorah.com/Files/API/mf-config.json"
-        mf_countries = requests.get(url).json()
-        _logger.info("mf_countries: \n%s", mf_countries)
-        invoice_id = ''
+        response = requests.post(api_url, data=json.dumps(payload), headers=headers, timeout=30)
         invoice_url = '#'
         if response.status_code != 200:
-            _logger.info("Failed on generating invoice with error:\n%s", response.json())
+            _logger.warning("MyFatoorah invoice generation failed with HTTP %s", response.status_code)
         if response.status_code == 200:
             response_data = response.json()
             self.provider_reference = response_data["Data"]["InvoiceId"]

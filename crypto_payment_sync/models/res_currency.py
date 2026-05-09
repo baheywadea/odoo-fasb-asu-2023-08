@@ -1,11 +1,7 @@
-from odoo import models, fields, api
-import logging
-# from odoo.addons.crypto_payment_sync.const import SUPPORTED_CURRENCIES
-import requests
+from odoo import models, fields, api, _
 import time
 import datetime
-
-_logger = logging.getLogger(__name__)
+from odoo.exceptions import UserError
 
 class ResCurrency(models.Model):
     _inherit = "res.currency"
@@ -23,59 +19,64 @@ class ResCurrency(models.Model):
         for rec in self:
             rec.is_crypto = rec.type == 'crypto'
 
+    def _get_cryptoapis_provider(self):
+        provider = self.env['payment.provider'].search([('code', '=', 'crypto')], limit=1)
+        if not provider:
+            raise UserError(_("Configure the Crypto payment provider before syncing Crypto APIs data."))
+        provider._cryptoapis_headers()
+        return provider
+
     def get_crypto_referenceid(self):
+        provider = self._get_cryptoapis_provider()
         for rec in self:
             if not rec.cryptoapis_referenceId:
-                provider = self.env['payment.provider'].search([('code', '=', 'crypto')])
-                if provider and provider[0].cryptoapis_api_key:
-                    url = "https://rest.cryptoapis.io/market-data/assets/by-symbol/" + rec.symbol + "?context=OdooSyncCurrency"
-                    headers = {
-                        "X-API-Key": provider[0].cryptoapis_api_key
-                    }
-                    response = requests.get(url, headers=headers)
-                    if response.status_code != 200:
-                        raise Exception(f"Failed to fetch crypto currencies: {response.text}")
-                    _logger.info('response' + str(response))
-                    data = response.json().get("data", [])
-                    _logger.info('response Json Data' + str(data))
-                    currency_data = data.get("item", [])
-                    referenceId = currency_data.get("referenceId")
-                    rec.write({'cryptoapis_referenceId': referenceId})
+                symbol = rec.symbol or rec.name
+                if not symbol:
+                    continue
+                data = provider._cryptoapis_get(
+                    "market-data/assets/by-symbol/%s" % symbol,
+                    params={"context": "OdooSyncCurrency"},
+                ).get("data") or {}
+                currency_data = data.get("item") or {}
+                reference_id = currency_data.get("referenceId")
+                if reference_id:
+                    rec.write({'cryptoapis_referenceId': reference_id})
 
     def get_rate(self):
         calculation_timestamp = int(time.time())
         current_company = self.env.company
+        provider = self._get_cryptoapis_provider()
+        if not current_company.currency_id.cryptoapis_referenceId:
+            raise UserError(_("Set a Crypto APIs reference ID on the company currency before syncing rates."))
         for currency in self:
-            provider = self.env['payment.provider'].search([('code', '=', 'crypto')])
-            # / market - data / exchange - rates / by - symbol / {fromAssetSymbol} / {toAssetSymbol}
-            if provider and provider[0].cryptoapis_api_key:
-                url = "https://rest.cryptoapis.io/market-data/exchange-rates/by-id/" + current_company.currency_id.cryptoapis_referenceId + "/" + currency.cryptoapis_referenceId + "?context=OdooRates&calculationTimestamp=" + str(
-                    calculation_timestamp)
-                headers = {
-                    "X-API-Key": provider[0].cryptoapis_api_key
-                }
-                response = requests.get(url, headers=headers)
-                if response.status_code != 200:
-                    raise Exception(f"Failed to fetch crypto currencies: {response.text}")
-                _logger.info('response' + str(response))
-                data = response.json().get("data", [])
-                _logger.info('response Json Data' + str(data))
-                rate = data.get("item", [])
-                _logger.info('response Json assets' + str(rate))
-                # for rate in rates:
-                rate_val = rate.get("rate")
-                calculationTimestamp = rate.get("calculationTimestamp")
-                timestamp_int = int(calculationTimestamp)
-                rate_date = datetime.datetime.utcfromtimestamp(timestamp_int).date()
-                exist_rate_date = self.env['res.currency.rate'].search(
-                    [('currency_id', '=', currency.id), ('name', '=', rate_date)])
-                if not exist_rate_date:
-                    self.env['res.currency.rate'].create(
-                        {
-                            'currency_id': currency.id,
-                            'company_rate': rate_val,
-                            'name': rate_date,
-                        }
-                    )
-                else:
-                    exist_rate_date.write({'company_rate': rate_val})
+            if not currency.cryptoapis_referenceId:
+                continue
+            data = provider._cryptoapis_get(
+                "market-data/exchange-rates/by-id/%s/%s" % (
+                    current_company.currency_id.cryptoapis_referenceId,
+                    currency.cryptoapis_referenceId,
+                ),
+                params={
+                    "context": "OdooRates",
+                    "calculationTimestamp": calculation_timestamp,
+                },
+            ).get("data") or {}
+            rate = data.get("item") or {}
+            rate_val = rate.get("rate")
+            calculationTimestamp = rate.get("calculationTimestamp")
+            if not rate_val or not calculationTimestamp:
+                continue
+            timestamp_int = int(calculationTimestamp)
+            rate_date = datetime.datetime.utcfromtimestamp(timestamp_int).date()
+            exist_rate_date = self.env['res.currency.rate'].search(
+                [('currency_id', '=', currency.id), ('name', '=', rate_date)])
+            if not exist_rate_date:
+                self.env['res.currency.rate'].create(
+                    {
+                        'currency_id': currency.id,
+                        'company_rate': rate_val,
+                        'name': rate_date,
+                    }
+                )
+            else:
+                exist_rate_date.write({'company_rate': rate_val})

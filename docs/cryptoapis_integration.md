@@ -1,6 +1,6 @@
 # Crypto APIs Integration
 
-This project uses Crypto APIs as a reference read-only data source for blockchain/payment-data ingestion. The integration is designed to support accounting workflow preparation, traceability, fair-value support, and professional review. It does not implement custody, private-key handling, transaction signing, transaction broadcasting, or funds movement.
+This project uses Crypto APIs as a reference data source for blockchain/payment-data ingestion. The accounting-support workflow is designed around read-only ingestion, traceability, fair-value support, and professional review. Any legacy local-wallet generation, signing, or broadcast methods are disabled by default and require explicit test-only system-parameter opt-ins; they are outside the recommended accounting-support workflow.
 
 Official documentation reference: <https://developers.cryptoapis.io/v-2.2024-12-12-175/RESTapis/general-information/overview>
 
@@ -23,6 +23,19 @@ Where exact endpoint paths or response schemas need chain-specific verification,
 - The provider form displays a masked key for ordinary review.
 - The adapter exposes a masked API key helper for logs or diagnostics.
 - Do not log API keys, webhook secrets, private keys, seed phrases, or real client data.
+
+## Usage Controls
+
+Provider-level sync actions use conservative request controls so paid API accounts are not queried broadly by accident:
+
+- `Crypto APIs Page Size`
+- `Crypto APIs Max Pages`
+- `Crypto APIs Request Delay`
+- `Wallet Sync Network XML IDs`
+
+Wallet sync requires configured network XML IDs before it queries managed HD wallets.
+
+Outbound transaction signing or broadcast remains disabled unless `crypto_payment_sync.allow_transaction_broadcast` is explicitly set to `1`. Local mnemonic generation remains disabled unless `crypto_payment_sync.allow_local_wallet_generation` is explicitly set to `1`. These settings are intended for approved test workflows only.
 
 ## Adapter Files
 

@@ -1,10 +1,6 @@
-import requests
-from odoo import models, fields, api, _
+from odoo import models, fields, _
 from odoo.exceptions import UserError
-import logging
-from datetime import datetime, timedelta
-
-_logger = logging.getLogger(__name__)
+from datetime import datetime
 
 
 class CryptoWalletAddressEvent(models.Model):
@@ -48,21 +44,16 @@ class CryptoWalletAddressEvent(models.Model):
     def get_event_details(self):
 
         for record in self:
-            blockchain = record.wallet_id.blockchain_id.name.lower()
-            network = record.wallet_id.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ", "")
-            # address = record.name
             referenceId = record.reference_id
-            url = f"https://rest.cryptoapis.io/blockchain-events/{blockchain}/{network}/{referenceId}?context=OdooGetEvent"
-            headers = {
-                "X-API-Key": record.wallet_id.payment_provider_id.cryptoapis_api_key
-            }
-            response = requests.get(url, headers=headers)
-            if response.status_code != 200:
-                raise Exception(f"Failed to fetch Event : {response.text}")
-            _logger.info('response' + str(response))
-            data = response.json().get("data", [])
-            _logger.info('response Json Data' + str(data))
-            item = data.get("item", [])
+            if not referenceId:
+                raise UserError(_("Set the Crypto APIs event reference before fetching event details."))
+            provider = record.wallet_id.payment_provider_id
+            _family, blockchain, network = record.wallet_id._cryptoapis_path_parts()
+            data = provider._cryptoapis_get(
+                f"blockchain-events/{blockchain}/{network}/{referenceId}",
+                params={"context": "OdooGetEvent"},
+            ).get("data") or {}
+            item = data.get("item") or {}
 
             record.write({
                 # "address": "tb1qtm44m6xmuasy4sc7nl7thvuxcerau2dfvkkgsc",
@@ -78,4 +69,3 @@ class CryptoWalletAddressEvent(models.Model):
                 "transaction_id": item.get("transactionId"),
 
             })
-

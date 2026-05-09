@@ -12,7 +12,7 @@
     <template id="crypto_payment_qr_page" name="Crypto Payment QR Page">
         <t t-call="website.layout">
             <script>
-                // ✅ Minimal process polyfill for WalletConnect
+                // Minimal process polyfill for WalletConnect
                 window.process = window.process || {
                 env: {
                 NODE_ENV: "production"

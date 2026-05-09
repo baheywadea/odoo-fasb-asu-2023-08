@@ -1,16 +1,5 @@
-# Part of Odoo. See LICENSE file for full copyright and licensing details.
-
-import logging
-import json
-import requests
-import secrets
 from odoo import _, fields, models
-from werkzeug.urls import url_encode
-from odoo.http import request
-from odoo.exceptions import UserError, ValidationError
-from werkzeug.urls import url_decode, url_parse
-
-_logger = logging.getLogger(__name__)
+from odoo.exceptions import UserError
 
 
 class ResPartnerCryptoAddress(models.Model):
@@ -75,6 +64,14 @@ class AccountPayment(models.Model):
                     'wallet_address_id': wallet_address_id.id
                 })
                 record.write({'crypto_transaction_id': trans.id})
+                allow_broadcast = self.env['ir.config_parameter'].sudo().get_param(
+                    'crypto_payment_sync.allow_transaction_broadcast'
+                ) == '1'
+                if not allow_broadcast:
+                    raise UserError(_(
+                        "Automatic crypto transaction signing and broadcast is disabled by default. "
+                        "Set crypto_payment_sync.allow_transaction_broadcast to 1 only in an approved test workflow."
+                    ))
                 trans.send_native_from_odoo()
                 continue  # Move to next record
 
@@ -113,8 +110,6 @@ class AccountPayment(models.Model):
                 })
 
         return super(AccountPayment, self).action_post()
-
-
 
 
 

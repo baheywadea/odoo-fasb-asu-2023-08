@@ -34,7 +34,7 @@ Any accounting or tax outputs derived from this module should be treated as revi
 
 Some methods reference external API workflows and provider credentials. Use only sandbox or test credentials during development. Do not commit API keys, private keys, wallet seed phrases, webhook secrets, production logs, or real client data.
 
-The new adapter layer under `services/` is read-only. Outbound payment execution, transaction signing, wallet management, or callback workflows require separate legal, regulatory, accounting, and security review before any production use.
+The new adapter layer under `services/` is read-only. Legacy local-wallet generation and transaction broadcast paths are disabled by default and require explicit test-only system-parameter opt-ins. Outbound payment execution, transaction signing, wallet management, or callback workflows require separate legal, regulatory, accounting, and security review before any production use.
 
 ## Development Notes
 

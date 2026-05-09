@@ -48,6 +48,11 @@
                     <field name="cryptoapis_api_key" required="code == 'crypto' and state != 'disabled'"
                            password="True"/>
                     <field name="cryptoapis_api_key_masked" readonly="1"/>
+                    <field name="cryptoapis_page_size"/>
+                    <field name="cryptoapis_max_pages"/>
+                    <field name="cryptoapis_request_delay"/>
+                    <field name="cryptoapis_wallet_network_xmlids"
+                           placeholder="crypto_payment_sync.network_ethereum_mainnet, crypto_payment_sync.network_bitcoin_mainnet"/>
 <!--                    <field name="crypto_wallet_address" required="code == 'crypto' and state != 'disabled'"/>-->
                     <!--                    <field name="supported_cryptos" required="code == 'crypto' and state != 'disabled'"/>-->
                 </group>
