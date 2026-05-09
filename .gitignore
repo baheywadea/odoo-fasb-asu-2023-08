@@ -1,0 +1,45 @@
+# macOS and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Odoo/runtime artifacts
+*.log
+*.pid
+*.pot
+*.mo
+filestore/
+sessions/
+
+# Local environments
+.env
+.env.*
+venv/
+.venv/
+env/
+
+# Secrets and local credentials
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+private_keys/
+
+# Generated archives
+*.zip
+*.tar
+*.tar.gz

@@ -8,6 +8,13 @@
     'category': 'Accounting/Payment Acquirers',
     'depends': ['account', 'website_sale', 'payment'],
     'data': [
+        'data/crypto_groups.xml',
+        'security/ir.model.access.csv',
+        'data/payment_method_data.xml',
+        'data/payment_provider_data.xml',
+        'data/crypto_blockchain_data.xml',
+        'data/crypto_network_data.xml',
+        'data/cron.xml',
         'views/payment_crypto_templates.xml',
         'views/crypto_currency_views.xml',
         'views/crypto_transaction_views.xml',
@@ -22,13 +29,6 @@
         'views/res_partner_views.xml',
         'views/account_journal_views.xml',
         'views/account_payment_views.xml',
-        'data/cron.xml',
-        'data/payment_method_data.xml',
-        'data/payment_provider_data.xml',
-        'data/crypto_blockchain_data.xml',
-        'data/crypto_network_data.xml',
-        'data/crypto_groups.xml',
-        'security/ir.model.access.csv',
     ],
     "assets": {
              'web.assets_frontend': [

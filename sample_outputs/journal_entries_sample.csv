@@ -1,0 +1,4 @@
+journal_entry_support_id,entry_date,source_reference,account_debit,account_credit,asset_symbol,amount_usd,entry_purpose,review_status,notes
+JE-DEMO-0001,2026-01-15,DEMO-TX-0001,Digital Asset Treasury,Cash Clearing,BTC,1050.00,Purchase recognition support,prepared,Fake draft journal-entry support row
+JE-DEMO-0002,2026-03-31,FV-DEMO-0002,Digital Asset Treasury,Fair Value Gain,BTC,225.00,Period-end fair-value remeasurement support,pending_review,Requires accounting policy review
+JE-DEMO-0003,2026-03-31,FV-DEMO-0003,Digital Asset Treasury,Fair Value Gain,ETH,75.00,Period-end fair-value remeasurement support,pending_review,Requires accounting policy review

@@ -1,0 +1,4 @@
+fair_value_record_id,source_transaction_id,measurement_date,asset_symbol,quantity,fair_value_per_unit_usd,total_fair_value_usd,cost_basis_support_usd,unrealized_gain_loss_usd,price_source,source_timestamp_utc,review_status,notes
+FV-DEMO-0001,DEMO-TX-0001,2026-01-15,BTC,0.02500000,42000.00,1050.00,1050.00,0.00,Demo price source,2026-01-15T14:22:10Z,prepared,Fake transaction-date fair-value record
+FV-DEMO-0002,DEMO-TX-0001,2026-03-31,BTC,0.02500000,51000.00,1275.00,1050.00,225.00,Demo price source,2026-03-31T23:59:00Z,pending_review,Fake period-end fair-value support
+FV-DEMO-0003,DEMO-TX-0002,2026-03-31,ETH,0.75000000,2500.00,1875.00,1800.00,75.00,Demo price source,2026-03-31T23:59:00Z,pending_review,Fake period-end fair-value support
