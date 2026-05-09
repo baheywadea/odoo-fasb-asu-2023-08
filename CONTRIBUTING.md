@@ -1,4 +1,4 @@
-# Contributing
+# Contributing 1.0
 
 Thank you for your interest in this project.
 
