@@ -56,7 +56,7 @@ class CryptoWalletAddress(models.Model):
     def _compute_events_count(self):
         counts = {
             row['address_id'][0]: row['address_id_count']
-            for row in self.env['crypto.wallet.address.event'].read_group(
+            for row in self.env['crypto.wallet.address.event'].with_context(active_test=False).read_group(
                 [('address_id', 'in', self.ids)],
                 ['address_id'],
                 ['address_id'],
@@ -85,7 +85,7 @@ class CryptoWalletAddress(models.Model):
             'res_model': 'crypto.wallet.address.event',
             'view_mode': 'list,form',
             'domain': [('address_id', '=', self.id)],
-            'context': {'default_address_id': self.id},
+            'context': {'default_address_id': self.id, 'active_test': False},
         }
 
     def _cryptoapis_path_parts(self):
@@ -165,19 +165,16 @@ class CryptoWalletAddress(models.Model):
                     rec._cryptoapis_blockchain_events_path("address-coins-transactions-confirmed"),
                     payload=payload,
                 ).get('data', {}).get('item', {})
-                self.env['crypto.wallet.address.event'].create({'reference_id': event_data.get('referenceId'),
-                                                                "address_id": rec.id,
-                                                                "callback_secretkey": event_data.get(
-                                                                    "callbackSecretKey"),
-                                                                "name": event_data.get("callbackUrl"),
-                                                                "created_timestamp": datetime.utcfromtimestamp(
-                                                                    event_data.get(
-                                                                        'createdTimestamp')) if event_data.get(
-                                                                    'createdTimestamp') else False,
-                                                                "event_type": event_data.get("eventType"),
-                                                                "active": event_data.get("isActive"),
-                                                                "reference_id": event_data.get("referenceId"),
-                                                                })
+                self.env['crypto.wallet.address.event'].create({
+                    "address_id": rec.id,
+                    "callback_secretkey": event_data.get("callbackSecretKey"),
+                    "name": event_data.get("callbackUrl") or "/",
+                    "created_timestamp": datetime.utcfromtimestamp(event_data.get('createdTimestamp'))
+                    if event_data.get('createdTimestamp') else False,
+                    "event_type": event_data.get("eventType"),
+                    "active": bool(event_data.get("isActive", True)),
+                    "reference_id": event_data.get("referenceId"),
+                })
                 return event_data
 
     def action_generate_event(self, tx_id, secret_token):
@@ -229,7 +226,7 @@ class CryptoWalletAddress(models.Model):
             "created_timestamp": datetime.utcfromtimestamp(event_data.get('createdTimestamp'))
             if event_data.get('createdTimestamp') else False,
             "event_type": event_data.get("eventType"),
-            "active": event_data.get("isActive"),
+            "active": bool(event_data.get("isActive", True)),
             "reference_id": event_data.get("referenceId"),
             # "payment_transaction_id": int(tx_id),
         })
@@ -261,7 +258,7 @@ class CryptoWalletAddress(models.Model):
                     break
                 for item in items:
                     count += 1
-                    if event_obj.search([('reference_id', '=', item.get('referenceId'))], limit=1):
+                    if event_obj.with_context(active_test=False).search([('reference_id', '=', item.get('referenceId'))], limit=1):
                         continue
                     address_id = self.env['crypto.wallet.address'].search(
                         [('name', '=', item.get("address"))], limit=1)
@@ -278,7 +275,7 @@ class CryptoWalletAddress(models.Model):
                         'created_timestamp': datetime.utcfromtimestamp(item.get('createdTimestamp'))
                         if item.get('createdTimestamp') else False,
                         'event_type': item.get("eventType"),
-                        'active': item.get("isActive"),
+                        'active': bool(item.get("isActive", True)),
                         'reference_id': item.get("referenceId"),
                     })
                 page += 1

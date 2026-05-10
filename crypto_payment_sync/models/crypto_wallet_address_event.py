@@ -21,7 +21,7 @@ class CryptoWalletAddressEvent(models.Model):
 
     event_type = fields.Char("Event Type")
 
-    active = fields.Boolean(string="Active")
+    active = fields.Boolean(string="Active", default=True)
 
     allow_duplicates = fields.Boolean(string="Allow Dupilcates")
 
@@ -55,17 +55,16 @@ class CryptoWalletAddressEvent(models.Model):
             ).get("data") or {}
             item = data.get("item") or {}
 
-            record.write({
-                # "address": "tb1qtm44m6xmuasy4sc7nl7thvuxcerau2dfvkkgsc",
-                # "blockchain": "bitcoin",
+            vals = {
                 "callback_secretkey": item.get("callbackSecretKey"),
-                "name": item.get("callbackUrl"),
                 "confirmations_count": item.get("confirmationsCount"),
-                "created_timestamp": datetime.utcfromtimestamp(data.get('createdTimestamp')) if data.get('createdTimestamp') else False,
-
+                "created_timestamp": datetime.utcfromtimestamp(item.get('createdTimestamp'))
+                if item.get('createdTimestamp') else False,
                 "event_type": item.get("eventType"),
-                "active": item.get("isActive"),
+                "active": bool(item.get("isActive")),
                 "reference_id": item.get("referenceId"),
                 "transaction_id": item.get("transactionId"),
-
-            })
+            }
+            if item.get("callbackUrl"):
+                vals["name"] = item["callbackUrl"]
+            record.write(vals)
