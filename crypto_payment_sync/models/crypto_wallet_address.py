@@ -258,53 +258,53 @@ class CryptoWalletAddress(models.Model):
         return event_data
 
     def get_events(self):
+        for record in self:
+            provider = record.wallet_id.payment_provider_id
+            limit = provider.cryptoapis_page_size or 50
+            delay = provider.cryptoapis_sync_delay or 2
 
+            blockchain = record.wallet_id.blockchain_id.name.lower()
+            network = record.wallet_id.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ", "")
+            headers = {"X-API-Key": provider.cryptoapis_api_key}
+            event_obj = self.env['crypto.wallet.address.event']
 
-            for record in self:
-                total_items = 100000
-                max_count = 500
-                count = 0
-                times = 0
-                limit = 50
-                while count < total_items and count < max_count:
-                    time.sleep(2)
-                    offset = times * limit
-                    blockchain = record.wallet_id.blockchain_id.name.lower()
-                    network = record.wallet_id.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(
-                        " ", "")
-                    address = record.name
-                    url = f"https://rest.cryptoapis.io/blockchain-events/{blockchain}/{network}?context=list_event_odoo&limit=50&offset=" + str(offset)
-                    headers = {
-                        "X-API-Key": record.wallet_id.payment_provider_id.cryptoapis_api_key
-                    }
-                    response = requests.get(url, headers=headers)
-                    if response.status_code != 200:
-                        raise Exception(f"Failed to fetch crypto transactions: {response.text}")
-                    _logger.info('response' + str(response))
-                    data = response.json().get("data", [])
-                    _logger.info('response Json Data' + str(data))
-                    items = data.get("items", [])
-                    if len(items) <= 0:
-                        break;
-                    event_obj = self.env['crypto.wallet.address.event']
-                    for item in items:
-                        count = count + 1
-                        is_Exist = event_obj.search([('reference_id', '=', item.get('referenceId'))])
-                        if not is_Exist:
-                            address_id = self.env['crypto.wallet.address'].search([('name', '=', item.get("address"))], limit=1)
-                            if not address_id:
-                                _logger.warning("get_events: no address found for %s, skipping event %s", item.get("address"), item.get("referenceId"))
-                                continue
-                            event_obj.create({
-                                'address_id': address_id.id,
-                                "callback_secretkey": item.get("callbackSecretKey"),
-                                "name": item.get("callbackUrl") or "/",
-                                "confirmations_count": item.get("confirmationsCount"),
-                                "created_timestamp": datetime.utcfromtimestamp(item.get('createdTimestamp')) if item.get(
-                                    'createdTimestamp') else False,
-                                "event_type": item.get("eventType"),
-                                "active": item.get("isActive"),
-                                "reference_id": item.get("referenceId"),
-                            })
-                    times = times + 1
+            total_items = 100000
+            count = 0
+            page = 0
+            while count < total_items:
+                time.sleep(delay)
+                offset = page * limit
+                url = (f"https://rest.cryptoapis.io/blockchain-events/{blockchain}/{network}"
+                       f"?context=list_event_odoo&limit={limit}&offset={offset}")
+                response = requests.get(url, headers=headers)
+                if response.status_code != 200:
+                    raise Exception(f"Failed to fetch events: {response.text}")
+                data = response.json().get("data", {})
+                total_items = data.get("total") or total_items
+                items = data.get("items") or []
+                if not items:
+                    break
+                for item in items:
+                    count += 1
+                    if event_obj.search([('reference_id', '=', item.get('referenceId'))], limit=1):
+                        continue
+                    address_id = self.env['crypto.wallet.address'].search(
+                        [('name', '=', item.get("address"))], limit=1)
+                    if not address_id:
+                        _logger.warning(
+                            "get_events: no address in Odoo for %s, skipping event %s",
+                            item.get("address"), item.get("referenceId"))
+                        continue
+                    event_obj.create({
+                        'address_id': address_id.id,
+                        'callback_secretkey': item.get("callbackSecretKey"),
+                        'name': item.get("callbackUrl") or "/",
+                        'confirmations_count': item.get("confirmationsCount"),
+                        'created_timestamp': datetime.utcfromtimestamp(item.get('createdTimestamp'))
+                        if item.get('createdTimestamp') else False,
+                        'event_type': item.get("eventType"),
+                        'active': item.get("isActive"),
+                        'reference_id': item.get("referenceId"),
+                    })
+                page += 1
 
