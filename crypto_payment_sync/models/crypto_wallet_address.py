@@ -1,8 +1,11 @@
+import logging
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 from datetime import datetime, timedelta
 from odoo.http import request
 import time
+
+_logger = logging.getLogger(__name__)
 
 
 class CryptoWalletAddress(models.Model):
@@ -196,47 +199,48 @@ class CryptoWalletAddress(models.Model):
         return event_data
 
     def get_events(self):
-
-
-            for record in self:
-                provider = record.wallet_id.payment_provider_id
-                total_items = 100000
-                max_count = provider._cryptoapis_page_size() * provider._cryptoapis_max_pages()
-                count = 0
-                times = 0
-                limit = provider._cryptoapis_page_size()
-                while count < total_items and count < max_count:
-                    time.sleep(provider._cryptoapis_request_delay())
-                    offset = times * limit
-                    data = provider._cryptoapis_get(
-                        record._cryptoapis_blockchain_events_path(),
-                        params={
-                            "context": "list_event_odoo",
-                            "limit": limit,
-                            "offset": offset,
-                        },
-                    ).get("data", {})
-                    total_items = data.get("total") or total_items
-                    items = data.get("items", [])
-                    if len(items) <= 0:
-                        break
-                    event_obj = self.env['crypto.wallet.address.event']
-                    for item in items:
-                        count = count + 1
-                        is_Exist = event_obj.search([('reference_id', '=', item.get('referenceId'))])
-                        if not is_Exist:
-                            address_id = self.env['crypto.wallet.address'].search([('name','=',item.get("address"))])
-                            event_id = event_obj.create({
-                                'address_id': address_id.id,
-                                "callback_secretkey": item.get("callbackSecretKey"),
-                                "name": item.get("callbackUrl"),
-                                "confirmations_count": item.get("confirmationsCount"),
-                                "created_timestamp": datetime.utcfromtimestamp(data.get('createdTimestamp')) if data.get(
-                                    'createdTimestamp') else False,
-
-                                "event_type": item.get("eventType"),
-                                "active": item.get("isActive"),
-                                "reference_id": item.get("referenceId"),
-
-                            })
-                    times = times + 1
+        for record in self:
+            provider = record.wallet_id.payment_provider_id
+            limit = provider._cryptoapis_page_size()
+            max_pages = provider._cryptoapis_max_pages()
+            event_obj = self.env['crypto.wallet.address.event']
+            total_items = 100000
+            count = 0
+            page = 0
+            while count < total_items and page < max_pages:
+                time.sleep(provider._cryptoapis_request_delay())
+                data = provider._cryptoapis_get(
+                    record._cryptoapis_blockchain_events_path(),
+                    params={
+                        "context": "list_event_odoo",
+                        "limit": limit,
+                        "offset": page * limit,
+                    },
+                ).get("data", {})
+                total_items = data.get("total") or total_items
+                items = data.get("items") or []
+                if not items:
+                    break
+                for item in items:
+                    count += 1
+                    if event_obj.search([('reference_id', '=', item.get('referenceId'))], limit=1):
+                        continue
+                    address_id = self.env['crypto.wallet.address'].search(
+                        [('name', '=', item.get("address"))], limit=1)
+                    if not address_id:
+                        _logger.warning(
+                            "get_events: no address in Odoo for %s, skipping event %s",
+                            item.get("address"), item.get("referenceId"))
+                        continue
+                    event_obj.create({
+                        'address_id': address_id.id,
+                        'callback_secretkey': item.get("callbackSecretKey"),
+                        'name': item.get("callbackUrl") or "/",
+                        'confirmations_count': item.get("confirmationsCount"),
+                        'created_timestamp': datetime.utcfromtimestamp(item.get('createdTimestamp'))
+                        if item.get('createdTimestamp') else False,
+                        'event_type': item.get("eventType"),
+                        'active': item.get("isActive"),
+                        'reference_id': item.get("referenceId"),
+                    })
+                page += 1

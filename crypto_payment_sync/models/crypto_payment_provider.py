@@ -48,6 +48,14 @@ class CryptoPaymentProvider(models.Model):
         readonly=False,
         help="Comma-separated network XML IDs queried by List HD Wallets. Leave empty to prevent accidental broad paid API usage.",
     )
+    cryptoapis_wallet_network_ids = fields.Many2many(
+        "crypto.network",
+        string="Wallet Sync Networks",
+        compute="_compute_cryptoapis_usage_config",
+        inverse="_inverse_cryptoapis_usage_config",
+        readonly=False,
+        help="Existing network records queried by List HD Wallets. Select only the networks you want to sync.",
+    )
 
     def _compute_cryptoapis_api_key_masked(self):
         for record in self:
@@ -73,6 +81,9 @@ class CryptoPaymentProvider(models.Model):
                 record._cryptoapis_config_key("wallet_network_xmlids"),
                 "",
             )
+            network_ids = params.get_param(record._cryptoapis_config_key("wallet_network_ids"), "")
+            ids = [int(item) for item in network_ids.split(",") if item.strip().isdigit()]
+            record.cryptoapis_wallet_network_ids = [(6, 0, ids)]
 
     def _inverse_cryptoapis_usage_config(self):
         params = self.env["ir.config_parameter"].sudo()
@@ -83,6 +94,10 @@ class CryptoPaymentProvider(models.Model):
             params.set_param(
                 record._cryptoapis_config_key("wallet_network_xmlids"),
                 record.cryptoapis_wallet_network_xmlids or "",
+            )
+            params.set_param(
+                record._cryptoapis_config_key("wallet_network_ids"),
+                ",".join(str(network_id) for network_id in record.cryptoapis_wallet_network_ids.ids),
             )
 
     def _compute_crypto_wallet_count(self):
@@ -123,6 +138,9 @@ class CryptoPaymentProvider(models.Model):
 
     def _cryptoapis_wallet_networks(self):
         self.ensure_one()
+        networks = self.cryptoapis_wallet_network_ids
+        if networks:
+            return networks
         networks = self.env["crypto.network"]
         for xmlid in (self.cryptoapis_wallet_network_xmlids or "").split(","):
             xmlid = xmlid.strip()
@@ -387,7 +405,7 @@ class CryptoPaymentProvider(models.Model):
             if not wallet_networks:
                 return provider._cryptoapis_notification(
                     _("Crypto APIs Wallet Sync"),
-                    _("Set Wallet Sync Network XML IDs before running this action. This prevents accidental broad paid API usage."),
+                    _("Select one or more Wallet Sync Networks on this provider before running this action. This prevents accidental broad paid API usage."),
                     notification_type="warning",
                     sticky=True,
                 )

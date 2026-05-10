@@ -149,39 +149,36 @@ class CryptoWallet(models.Model):
         for rec in self:
             provider = rec.payment_provider_id
             provider._cryptoapis_headers()
+            limit = provider._cryptoapis_page_size()
+            max_pages = provider._cryptoapis_max_pages()
+            family, _blockchain, _network = rec._cryptoapis_path_parts()
+            address_format = "p2wpkh" if family == "utxo" else ("classic" if not family else "standard")
+            address_obj = self.env['crypto.wallet.address']
             total_items = 100000
-            max_count = provider._cryptoapis_page_size() * provider._cryptoapis_max_pages()
             count = 0
             page = 0
-            limit = provider._cryptoapis_page_size()
-            while count < total_items and count < max_count:
+            while count < total_items and page < max_pages:
                 time.sleep(provider._cryptoapis_request_delay())
-                offset = page * limit
-                family, _blockchain, _network = rec._cryptoapis_path_parts()
-                address_format = "p2wpkh" if family == "utxo" else "standard"
-                if not family:
-                    address_format = "classic"
-                wallet_addresses = provider._cryptoapis_get(
+                data = provider._cryptoapis_get(
                     rec._cryptoapis_hd_wallet_path("addresses"),
                     params={
                         "context": "list_synced_addresses_odoo",
                         "addressFormat": address_format,
                         "isChangeAddress": 0,
                         "limit": limit,
-                        "offset": offset,
+                        "offset": page * limit,
                     },
-                ).get('data', {}).get('items', [])
-                address_obj = self.env['crypto.wallet.address']
-                if len(wallet_addresses) <= 0:
+                ).get('data', {})
+                total_items = data.get('total') or total_items
+                wallet_addresses = data.get('items') or []
+                if not wallet_addresses:
                     break
                 for address in wallet_addresses:
-                    count = count + 1
+                    count += 1
                     address_val = address.get('address')
-                    address_exist = address_obj.search([('name', '=', address_val)])
-                    if not address_exist:
-                        address_obj.create({'name': address_val, 'wallet_id': rec.id, 'index': address.get(
-                            'index')})
-                page = page + 1
+                    if not address_obj.search([('name', '=', address_val)], limit=1):
+                        address_obj.create({'name': address_val, 'wallet_id': rec.id, 'index': address.get('index')})
+                page += 1
 
     def get_balance(self):
         for record in self:
