@@ -26,6 +26,72 @@ class PaymentTransaction(models.Model):
 
     crypto_tx_hash = fields.Char(copy=False,string="TX Hash")
 
+    def _get_crypto_checkout_company(self):
+        self.ensure_one()
+        order = self.sale_order_ids[:1]
+        return order.company_id or self.company_id
+
+    def _get_crypto_checkout_currency(self):
+        self.ensure_one()
+        order = self.sale_order_ids[:1]
+        currency = order.pricelist_id.currency_id or self.currency_id
+        return currency if currency and currency.type == 'crypto' else self.env['res.currency']
+
+    def _get_crypto_checkout_wallet(self):
+        self.ensure_one()
+        company = self._get_crypto_checkout_company()
+        domain = [
+            ('payment_provider_id', '=', self.provider_id.id),
+            ('active', '=', True),
+        ]
+        if company:
+            domain += ['|', ('company_id', '=', company.id), ('company_id', '=', False)]
+        wallets = self.env["crypto.wallet"].search(domain)
+        if not wallets:
+            raise UserError(_(
+                "No active crypto wallet is configured for this payment provider and company. "
+                "Create or sync a wallet, assign it to this provider, and add wallet addresses."
+            ))
+
+        checkout_currency = self._get_crypto_checkout_currency()
+        currency_wallets = wallets.filtered(lambda wallet: wallet.currency_id == checkout_currency) if checkout_currency else wallets
+        for candidates in (
+            currency_wallets.filtered('is_default'),
+            currency_wallets,
+            wallets.filtered('is_default'),
+            wallets,
+        ):
+            if candidates:
+                return candidates[0]
+        raise UserError(_("No usable crypto wallet is configured for this payment."))
+
+    def _reserve_crypto_checkout_address(self, wallet):
+        self.ensure_one()
+        address_obj = self.env["crypto.wallet.address"]
+        address = address_obj.search([('payment_transaction_id', '=', self.id)], limit=1)
+        if not address:
+            address = address_obj.search([
+                ('payment_transaction_id', '=', False),
+                ('wallet_id', '=', wallet.id),
+                ('event_ids', '=', False),
+            ], limit=1)
+        if not address:
+            wallet.derive_new_addresses()
+            address = address_obj.search([
+                ('payment_transaction_id', '=', False),
+                ('wallet_id', '=', wallet.id),
+                ('event_ids', '=', False),
+            ], limit=1)
+        if not address:
+            raise UserError(_(
+                "No available wallet address was found for %(wallet)s. "
+                "Sync or derive wallet addresses before accepting this payment.",
+                wallet=wallet.display_name,
+            ))
+        address.write({'payment_transaction_id': self.id})
+        self.write({'crypto_address': address.id})
+        return address
+
     def _get_specific_rendering_values(self, processing_values):
         res = super()._get_specific_rendering_values(processing_values)
 
@@ -45,61 +111,8 @@ class PaymentTransaction(models.Model):
         if not self.crypto_amount_eth:
             self.crypto_amount_eth = float(self.amount)
 
-        address = None
-        # 3) Ensure deposit address exists (replace this with your real address generator)
-        for order in self.sale_order_ids:
-            wallet_id = self.env["crypto.wallet"].search(
-                [('company_id', '=', order.company_id.id), ('currency_id', '=', order.pricelist_id.currency_id.id)])
-            if len(wallet_id) > 0:
-                wallet_id = wallet_id[0]
-                address = self.env["crypto.wallet.address"].search([('payment_transaction_id', '=', self.id)])
-                if not address:
-                    address = self.env["crypto.wallet.address"].search(
-                        [('payment_transaction_id', '=', None), ('wallet_id', '=', wallet_id.id),
-                         ('event_ids', '=', None)])
-                    if len(address) > 0:
-                        address = address[0]
-                        address.write({'payment_transaction_id': self.id})
-                        self.write({'crypto_address': address.id})
-                    else:
-                        wallet_id.derive_new_addresses()
-                        address = self.env["crypto.wallet.address"].search(
-                            [('payment_transaction_id', '=', None), ('wallet_id', '=', wallet_id.id),
-                             ('event_ids', '=', None)])
-                        if len(address) > 0:
-                            address = address[0]
-                            address.write({'payment_transaction_id': self.id})
-                            self.write({'crypto_address': address.id})
-            else:
-                raise UserError(
-                    _("Crypto API Key No Wallet configured."))
-
-        if not address:
-            wallet_id = self.env["crypto.wallet"].search(
-                [('company_id', '=', self.company_id.id), ('currency_id', '=', self.currency_id.id)])
-            if len(wallet_id) > 0:
-                wallet_id = wallet_id[0]
-                address = self.env["crypto.wallet.address"].search([('payment_transaction_id', '=', self.id)])
-                if not address:
-                    address = self.env["crypto.wallet.address"].search(
-                        [('payment_transaction_id', '=', None), ('wallet_id', '=', wallet_id.id),
-                         ('event_ids', '=', None)])
-                    if len(address) > 0:
-                        address = address[0]
-                        address.write({'payment_transaction_id': self.id})
-                        self.write({'crypto_address': address.id})
-                    else:
-                        wallet_id.derive_new_addresses()
-                        address = self.env["crypto.wallet.address"].search(
-                            [('payment_transaction_id', '=', None), ('wallet_id', '=', wallet_id.id),
-                             ('event_ids', '=', None)])
-                        if len(address) > 0:
-                            address = address[0]
-                            address.write({'payment_transaction_id': self.id})
-                            self.write({'crypto_address': address.id})
-            else:
-                raise UserError(
-                    _("Crypto API Key No Wallet configured."))
+        wallet = self._get_crypto_checkout_wallet()
+        address = self._reserve_crypto_checkout_address(wallet)
 
         # 4) Build redirect URL to our QR page
 

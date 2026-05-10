@@ -218,10 +218,16 @@ class CryptoWalletAddress(models.Model):
         event_data = provider._cryptoapis_post(
             self._cryptoapis_blockchain_events_path("address-coins-transactions-confirmed"),
             payload=payload,
+            expected_statuses=(200, 201, 409),
         ).get('data', {}).get('item', {}) or {}
+        if not event_data:
+            existing_event = self.event_ids.filtered(lambda event: event.name == callback_url)[:1]
+            if existing_event:
+                return {"referenceId": existing_event.reference_id}
+            return {}
 
         # Store the returned event reference without logging callback secrets.
-        self.env['crypto.wallet.address.event'].sudo().create({
+        values = {
             "address_id": self.id,
             "callback_secretkey": event_data.get("callbackSecretKey") or str(secret_token),
             "name": event_data.get("callbackUrl") or callback_url,
@@ -230,8 +236,14 @@ class CryptoWalletAddress(models.Model):
             "event_type": event_data.get("eventType"),
             "active": bool(event_data.get("isActive", True)),
             "reference_id": event_data.get("referenceId"),
-            # "payment_transaction_id": int(tx_id),
-        })
+        }
+        existing_event = self.event_ids.filtered(
+            lambda event: event.reference_id == values["reference_id"] or event.name == values["name"]
+        )[:1]
+        if existing_event:
+            existing_event.sudo().write(values)
+        else:
+            self.env['crypto.wallet.address.event'].sudo().create(values)
 
         return event_data
 

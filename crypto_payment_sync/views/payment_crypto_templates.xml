@@ -19,9 +19,6 @@
                 }
                 };
             </script>
-            <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.17.0/dist/index.umd.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
             <div id="wrap"
                  class="o_appointment_index"
                  t-att-data-tx-id="tx.id"
@@ -40,9 +37,8 @@
                                 </div>
 
                                 <div class="text-center mb-3">
-                                    <div id="wc_qr_box" style="display:none; margin: 0 auto; width:280px; height:280px;"></div>
                                     <div id="wc_qr_hint" class="text-muted">
-                                        Use WalletConnect to pay from Trust Wallet, Coinbase Wallet, Rainbow, MetaMask mobile, or another compatible wallet.
+                                        Use WalletConnect to pay from a compatible mobile or browser wallet.
                                     </div>
                                     <div id="wc_status" class="text-muted mt-2"></div>
                                 </div>
@@ -51,49 +47,13 @@
                                     <button id="wc_connect_btn" type="button" class="btn btn-primary btn-lg w-100">
                                         Pay with WalletConnect
                                     </button>
-                                    <button id="metamask_pay_btn" type="button" class="btn btn-outline-primary btn-lg w-100">
-                                        Pay with Browser Wallet
-                                    </button>
-                                </div>
-
-                                <div class="text-center mb-3">
-                                    <img t-att-src="'/crypto/qr/%s.png?token=%s' % (tx.id, token)"
-                                         alt="Payment QR"
-                                         style="max-width: 280px; width: 100%; height: auto;"/>
-                                </div>
-
-                                <div class="mb-2">
-                                    <small class="text-muted">Send to address</small>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <code class="flex-grow-1" style="word-break: break-all;"
-                                              t-esc="tx.crypto_address.name"/>
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                                t-att-data-copy="tx.crypto_address.name">Copy
-                                        </button>
-                                    </div>
                                 </div>
 
                                 <div class="mb-3">
                                     <small class="text-muted">Amount</small>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <code class="flex-grow-1" t-esc="tx.crypto_amount_eth"/>
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                                t-att-data-copy="str(tx.crypto_amount_eth)">Copy
-                                        </button>
+                                    <div>
+                                        <code t-esc="tx.crypto_amount_eth"/>
                                     </div>
-                                </div>
-
-                                <t t-set="wei_value" t-value="int(round(tx.crypto_amount_eth * 1000000000000000000))"/>
-                                <t t-set="chain_id" t-value="tx.crypto_address.wallet_id.network_id.chain_id"/>
-                                <t t-set="pay_uri"
-                                   t-value="'ethereum:%s?value=%s&amp;chainId=%s' % (tx.crypto_address.name, wei_value, chain_id)"/>
-
-
-                                <div class="d-grid gap-2 mt-3">
-                                    <a t-att-href="pay_uri"
-                                       class="btn btn-outline-secondary btn-lg w-100">
-                                        Open Wallet App
-                                    </a>
                                 </div>
 
                                 <div id="crypto_status_box" class="alert alert-info mb-0">

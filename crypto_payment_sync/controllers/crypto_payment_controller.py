@@ -73,9 +73,8 @@ class CryptoPaymentController(http.Controller):
         if not address:
             return request.make_response("missing address", [("Content-Type", "text/plain")], 400)
 
-        # Build Ethereum payment URI (EIP-681 style: value in WEI)
-        wei = _eth_to_wei(tx.crypto_amount_eth or 0.0)
-        uri = f"ethereum:{address}?value={wei}"
+        # Manual fallback QR: encode the address only so scanner apps do not force a MetaMask/EIP-681 deep link.
+        uri = address
 
         qr = qrcode.QRCode(box_size=8, border=2)
         qr.add_data(uri)
