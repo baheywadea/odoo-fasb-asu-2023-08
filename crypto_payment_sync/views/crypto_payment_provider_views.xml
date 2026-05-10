@@ -46,8 +46,11 @@
             <group name="provider_credentials" position="inside">
                 <group invisible="code != 'crypto'">
                     <field name="cryptoapis_api_key" required="code == 'crypto' and state != 'disabled'"/>
-<!--                    <field name="crypto_wallet_address" required="code == 'crypto' and state != 'disabled'"/>-->
-                    <!--                    <field name="supported_cryptos" required="code == 'crypto' and state != 'disabled'"/>-->
+                </group>
+                <group string="Sync Configuration" invisible="code != 'crypto'">
+                    <field name="cryptoapis_page_size"/>
+                    <field name="cryptoapis_max_pages"/>
+                    <field name="cryptoapis_sync_delay"/>
                 </group>
             </group>
 

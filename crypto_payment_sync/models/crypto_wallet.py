@@ -150,53 +150,61 @@ class CryptoWallet(models.Model):
             if not api_key:
                 raise UserError(
                     _("Crypto API Key not configured. Set it in System Parameters with key: crypto_api.key"))
+
+            provider = rec.payment_provider_id
+            limit = provider.cryptoapis_page_size or 50
+            max_pages = provider.cryptoapis_max_pages or 0
+            delay = provider.cryptoapis_sync_delay or 2
+
             total_items = 100000
-            max_count = 500
             count = 0
-            times = 0
-            limit = 50
-            while count < total_items and count < max_count:
-                time.sleep(2)
-                offset = times * limit
-                blockchain = self.blockchain_id.name.lower()
-                network = self.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ", "")
+            page = 0
+            blockchain = self.blockchain_id.name.lower()
+            network = self.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ", "")
+            address_obj = self.env['crypto.wallet.address']
+
+            while count < total_items:
+                if max_pages and page >= max_pages:
+                    break
+                time.sleep(delay)
+                offset = page * limit
                 if 'ether' in blockchain:
-                    url = f"https://rest.cryptoapis.io/hd-wallets/evm/{blockchain}/{network}/{rec.xpub}/addresses" \
-                          f"?context=list_synced_addresses_odoo&addressFormat=standard&isChangeAddress=0&limit=50&offset=" + str(
-                        offset)
-                if 'bitcoin' in blockchain:
-                    url = f"https://rest.cryptoapis.io/hd-wallets/utxo/{blockchain}/{network}/{rec.xpub}/addresses" \
-                          f"?context=list_synced_addresses_odoo&addressFormat=p2wpkh&isChangeAddress=0&limit=50&offset=" + str(
-                        offset)
-                if 'xrp' in blockchain:
-                    url = f"https://rest.cryptoapis.io/hd-wallets/{blockchain}/{network}/{rec.xpub}/addresses" \
-                          f"?context=list_synced_addresses_odoo&addressFormat=classic&isChangeAddress=0&limit=50&offset=" + str(
-                        offset)
+                    url = (f"https://rest.cryptoapis.io/hd-wallets/evm/{blockchain}/{network}/{rec.xpub}/addresses"
+                           f"?context=list_synced_addresses_odoo&addressFormat=standard&isChangeAddress=0&limit={limit}&offset={offset}")
+                elif 'bitcoin' in blockchain:
+                    url = (f"https://rest.cryptoapis.io/hd-wallets/utxo/{blockchain}/{network}/{rec.xpub}/addresses"
+                           f"?context=list_synced_addresses_odoo&addressFormat=p2wpkh&isChangeAddress=0&limit={limit}&offset={offset}")
+                elif 'xrp' in blockchain:
+                    url = (f"https://rest.cryptoapis.io/hd-wallets/{blockchain}/{network}/{rec.xpub}/addresses"
+                           f"?context=list_synced_addresses_odoo&addressFormat=classic&isChangeAddress=0&limit={limit}&offset={offset}")
+                else:
+                    raise UserError(_("Unsupported blockchain: %s") % blockchain)
 
                 headers = {
                     "Content-Type": "application/json",
                     "X-API-Key": api_key
                 }
 
-                _logger.info('Reuested URL' + str(url))
+                _logger.info('Requested URL' + str(url))
                 response = requests.get(url, headers=headers)
-                _logger.info('Response Statuse Code' + str(response.status_code))
+                _logger.info('Response Status Code' + str(response.status_code))
                 if response.status_code != 200:
                     raise UserError(_("Wallet Sync Addresses failed: %s") % response.text)
 
-                wallet_addresses = response.json().get('data', {}).get('items', {})
+                data = response.json().get('data', {})
+                total_items = data.get('total') or total_items
+                wallet_addresses = data.get('items') or []
                 _logger.info('Response wallet_data ' + str(wallet_addresses))
-                address_obj = self.env['crypto.wallet.address']
-                if len(wallet_addresses) <= 0:
-                    break;
+
+                if not wallet_addresses:
+                    break
+
                 for address in wallet_addresses:
-                    count = count + 1
+                    count += 1
                     address_val = address.get('address')
-                    address_exist = address_obj.search([('name', '=', address_val)])
-                    if not address_exist:
-                        address_obj.create({'name': address_val, 'wallet_id': rec.id, 'index': address.get(
-                            'index')})
-                times = times + 1
+                    if not address_obj.search([('name', '=', address_val)], limit=1):
+                        address_obj.create({'name': address_val, 'wallet_id': rec.id, 'index': address.get('index')})
+                page += 1
 
     def get_balance(self):
         for record in self:

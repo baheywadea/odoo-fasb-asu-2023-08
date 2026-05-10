@@ -16,6 +16,9 @@ class CryptoPaymentProvider(models.Model):
     code = fields.Selection(selection_add=[("crypto", "Crypto Payment")], ondelete={"crypto": "cascade"})
     # crypto_wallet_address = fields.Char(string="Company Wallet Address")
     cryptoapis_api_key = fields.Char(string="API KEY", help="API KEY")
+    cryptoapis_page_size = fields.Integer(string="Page Size", default=50, help="Number of addresses per API request (max 50)")
+    cryptoapis_max_pages = fields.Integer(string="Max Pages", default=10, help="Maximum number of pages to fetch per sync (0 = unlimited)")
+    cryptoapis_sync_delay = fields.Integer(string="Sync Delay (seconds)", default=2, help="Seconds to wait between API requests")
     payment_provider_id_crypto_wallet_count = fields.Integer(compute="_compute_crypto_wallet_count", store=True)
     provider_id_payment_transaction_count = fields.Integer(compute="_compute_crypto_transaction_count", store=True)
 

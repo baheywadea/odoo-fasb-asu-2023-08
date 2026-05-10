@@ -100,10 +100,12 @@ class CryptoWalletAddress(models.Model):
             address = record.name
             if 'ether' in blockchain:
                 url = f"https://rest.cryptoapis.io/addresses-latest/evm/{blockchain}/{network}/{address}/transactions?context=OdooEVMGetConfirmedTransactions&limit=10&sortingOrder=descending"
-            if 'bitcoin' in blockchain:
+            elif 'bitcoin' in blockchain:
                 url = f"https://rest.cryptoapis.io/addresses-latest/utxo/{blockchain}/{network}/{address}/transactions?context=OdooEVMGetConfirmedTransactions&limit=10&sortingOrder=descending"
-            if 'xrp' in blockchain:
+            elif 'xrp' in blockchain:
                 url = f"https://rest.cryptoapis.io/addresses-latest/{blockchain}/{network}/{address}/transactions?context=OdooEVMGetConfirmedTransactions&limit=10&sortingOrder=descending"
+            else:
+                raise UserError(_("Unsupported blockchain: %s") % blockchain)
 
             headers = {
                 "X-API-Key": record.wallet_id.payment_provider_id.cryptoapis_api_key
@@ -289,19 +291,20 @@ class CryptoWalletAddress(models.Model):
                         count = count + 1
                         is_Exist = event_obj.search([('reference_id', '=', item.get('referenceId'))])
                         if not is_Exist:
-                            address_id = self.env['crypto.wallet.address'].search([('name','=',item.get("address"))])
-                            event_id = event_obj.create({
+                            address_id = self.env['crypto.wallet.address'].search([('name', '=', item.get("address"))], limit=1)
+                            if not address_id:
+                                _logger.warning("get_events: no address found for %s, skipping event %s", item.get("address"), item.get("referenceId"))
+                                continue
+                            event_obj.create({
                                 'address_id': address_id.id,
                                 "callback_secretkey": item.get("callbackSecretKey"),
-                                "name": item.get("callbackUrl"),
+                                "name": item.get("callbackUrl") or "/",
                                 "confirmations_count": item.get("confirmationsCount"),
-                                "created_timestamp": datetime.utcfromtimestamp(data.get('createdTimestamp')) if data.get(
+                                "created_timestamp": datetime.utcfromtimestamp(item.get('createdTimestamp')) if item.get(
                                     'createdTimestamp') else False,
-
                                 "event_type": item.get("eventType"),
                                 "active": item.get("isActive"),
                                 "reference_id": item.get("referenceId"),
-
                             })
                     times = times + 1
 
