@@ -38,19 +38,16 @@ class CryptoWalletAddress(models.Model):
 
     payment_transaction_id = fields.Many2one("payment.transaction", string="Payment Transaction")
 
-    @api.depends('transaction_evm_ids')
+    @api.depends('transaction_evm_ids', 'name')
     def _compute_transactions_evm_count(self):
-        counts = {
-            row['wallet_address_id'][0]: row['wallet_address_id_count']
-            for row in self.env['crypto.transaction.evm'].read_group(
-                [('wallet_address_id', 'in', self.ids)],
-                ['wallet_address_id'],
-                ['wallet_address_id'],
-            )
-            if row.get('wallet_address_id')
-        }
+        TxEvm = self.env['crypto.transaction.evm']
         for record in self:
-            record.transactions_evm_count = counts.get(record.id, 0)
+            record.transactions_evm_count = TxEvm.search_count([
+                '|', '|',
+                ('wallet_address_id', '=', record.id),
+                ('sender', '=', record.name),
+                ('recipient', '=', record.name),
+            ])
 
     @api.depends('event_ids')
     def _compute_events_count(self):
@@ -73,7 +70,12 @@ class CryptoWalletAddress(models.Model):
             'name': _('Address Transactions'),
             'res_model': 'crypto.transaction.evm',
             'view_mode': 'list,form',
-            'domain': [('wallet_address_id', '=', self.id)],
+            'domain': [
+                '|', '|',
+                ('wallet_address_id', '=', self.id),
+                ('sender', '=', self.name),
+                ('recipient', '=', self.name),
+            ],
             'context': {'default_wallet_address_id': self.id},
         }
 
