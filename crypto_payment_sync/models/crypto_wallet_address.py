@@ -40,15 +40,53 @@ class CryptoWalletAddress(models.Model):
 
     @api.depends('transaction_evm_ids')
     def _compute_transactions_evm_count(self):
+        counts = {
+            row['wallet_address_id'][0]: row['wallet_address_id_count']
+            for row in self.env['crypto.transaction.evm'].read_group(
+                [('wallet_address_id', 'in', self.ids)],
+                ['wallet_address_id'],
+                ['wallet_address_id'],
+            )
+            if row.get('wallet_address_id')
+        }
         for record in self:
-            record['transactions_evm_count'] = self.env['crypto.transaction.evm'].search_count(
-                [('wallet_address_id', '=', record.id)])
+            record.transactions_evm_count = counts.get(record.id, 0)
 
     @api.depends('event_ids')
     def _compute_events_count(self):
+        counts = {
+            row['address_id'][0]: row['address_id_count']
+            for row in self.env['crypto.wallet.address.event'].read_group(
+                [('address_id', 'in', self.ids)],
+                ['address_id'],
+                ['address_id'],
+            )
+            if row.get('address_id')
+        }
         for record in self:
-            record['events_count'] = self.env['crypto.wallet.address.event'].search_count(
-                [('address_id', '=', record.id)])
+            record.events_count = counts.get(record.id, 0)
+
+    def action_view_transactions(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Address Transactions'),
+            'res_model': 'crypto.transaction.evm',
+            'view_mode': 'list,form',
+            'domain': [('wallet_address_id', '=', self.id)],
+            'context': {'default_wallet_address_id': self.id},
+        }
+
+    def action_view_events(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Address Events'),
+            'res_model': 'crypto.wallet.address.event',
+            'view_mode': 'list,form',
+            'domain': [('address_id', '=', self.id)],
+            'context': {'default_address_id': self.id},
+        }
 
     def _cryptoapis_path_parts(self):
         self.ensure_one()
