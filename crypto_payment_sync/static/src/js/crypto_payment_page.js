@@ -5,6 +5,9 @@ import { rpc } from "@web/core/network/rpc";
 let inited = false;
 let pollingStarted = false;
 let walletConnectBound = false;
+let walletConnectGuardBound = false;
+
+bindWalletConnectErrorGuard();
 
 function initCryptoPaymentPage() {
     if (inited) {
@@ -24,6 +27,7 @@ function initCryptoPaymentPage() {
         return;
     }
 
+    setupCopyButtons();
     startCryptoPolling(txId, token);
     setupWalletConnect(txId, token, wrap.dataset.walletconnectProjectId || "");
 }
@@ -65,7 +69,13 @@ function startCryptoPolling(txId, token) {
                 window.location.href = "/payment/status";
                 return;
             }
-            setStatus("alert-info", "Waiting for payment confirmation...");
+            if (res?.tx_hash) {
+                const message = res.message || "Transaction sent. Waiting for blockchain confirmation...";
+                const cls = ["failed", "mismatch"].includes(res.confirmation_status) ? "alert-warning" : "alert-info";
+                setStatus(cls, message);
+                return;
+            }
+            setStatus("alert-info", res?.message || "Waiting for payment confirmation...");
         } catch (_error) {
             setStatus("alert-warning", "Unable to check payment right now...");
         }
@@ -73,6 +83,28 @@ function startCryptoPolling(txId, token) {
     };
 
     poll();
+}
+
+function setupCopyButtons() {
+    for (const button of document.querySelectorAll("[data-copy]")) {
+        if (button.dataset.copyBound === "1") {
+            continue;
+        }
+        button.dataset.copyBound = "1";
+        button.addEventListener("click", async () => {
+            const value = button.dataset.copy || "";
+            const oldText = button.textContent;
+            try {
+                await navigator.clipboard.writeText(value);
+                button.textContent = "Copied";
+                setTimeout(() => {
+                    button.textContent = oldText;
+                }, 1500);
+            } catch (_error) {
+                setWalletStatus("Could not copy address automatically. Please copy it manually.", "text-warning mt-2");
+            }
+        });
+    }
 }
 
 async function loadEthereumProvider() {
@@ -121,6 +153,7 @@ async function getPaymentIntent(txId, token) {
         chainId: Number(intent.chainId),
         to: intent.to,
         valueHex: `0x${BigInt(String(intent.valueWei || "0")).toString(16)}`,
+        rpcUrl: intent.rpcUrl || "",
     };
 }
 
@@ -149,6 +182,7 @@ function setupWalletConnect(txId, token, projectId) {
 
     btn.addEventListener("click", async () => {
         const oldText = btn.textContent;
+        btn.dataset.defaultText = oldText;
         btn.disabled = true;
 
         try {
@@ -158,6 +192,7 @@ function setupWalletConnect(txId, token, projectId) {
 
             btn.textContent = "Opening WalletConnect...";
             setWalletStatus("Preparing WalletConnect session...");
+            await clearWalletConnectStorage();
 
             const [EthereumProvider, intent] = await Promise.all([
                 loadEthereumProvider(),
@@ -170,10 +205,11 @@ function setupWalletConnect(txId, token, projectId) {
             const provider = await EthereumProvider.init({
                 projectId,
                 chains: [intent.chainId],
-                optionalChains: [intent.chainId],
+                customStoragePrefix: `odoo_crypto_checkout_${txId}_${Date.now()}`,
                 showQrModal: true,
                 methods: ["eth_requestAccounts", "eth_accounts", "eth_sendTransaction"],
                 events: ["accountsChanged", "chainChanged", "disconnect"],
+                rpcMap: buildRpcMap(intent),
                 metadata: {
                     name: "Odoo Crypto Payment",
                     description: "Odoo crypto payment checkout",
@@ -182,7 +218,13 @@ function setupWalletConnect(txId, token, projectId) {
                 },
             });
 
-            const accounts = await provider.enable();
+            await provider.connect({
+                chains: [intent.chainId],
+                rpcMap: buildRpcMap(intent),
+            });
+            const accounts = provider.accounts?.length
+                ? provider.accounts
+                : await provider.request({ method: "eth_accounts" });
             const from = accounts?.[0];
             if (!from) {
                 throw new Error("walletconnect_no_account");
@@ -212,6 +254,112 @@ function setupWalletConnect(txId, token, projectId) {
     });
 }
 
+function buildRpcMap(intent) {
+    const rpcUrl = intent.rpcUrl || defaultRpcUrl(intent.chainId);
+    return rpcUrl ? { [intent.chainId]: rpcUrl } : {};
+}
+
+function defaultRpcUrl(chainId) {
+    const defaults = {
+        1: "https://ethereum.publicnode.com",
+        10: "https://mainnet.optimism.io",
+        56: "https://bsc-dataseed.binance.org",
+        137: "https://polygon-rpc.com",
+        8453: "https://mainnet.base.org",
+        42161: "https://arb1.arbitrum.io/rpc",
+        43114: "https://api.avax.network/ext/bc/C/rpc",
+        11155111: "https://ethereum-sepolia.publicnode.com",
+    };
+    return defaults[Number(chainId)] || "";
+}
+
+function bindWalletConnectErrorGuard() {
+    if (walletConnectGuardBound) {
+        return;
+    }
+    walletConnectGuardBound = true;
+
+    const isHandledWalletConnectError = (reason) => walletErrorType(reason) !== "";
+    const suppressWalletConnectError = (event, reason) => {
+        if (!isHandledWalletConnectError(reason)) {
+            return;
+        }
+        if (typeof event?.preventDefault === "function") {
+            event.preventDefault();
+        }
+        if (typeof event?.stopImmediatePropagation === "function") {
+            event.stopImmediatePropagation();
+        }
+        setWalletStatus(walletErrorMessage(reason), "text-warning mt-2");
+        resetWalletConnectButton();
+        clearWalletConnectStorage();
+    };
+
+    window.addEventListener("unhandledrejection", (event) => {
+        suppressWalletConnectError(event, event?.reason);
+    }, true);
+    window.addEventListener("error", (event) => {
+        suppressWalletConnectError(event, event?.error || event?.message);
+    }, true);
+}
+
+function resetWalletConnectButton() {
+    const btn = document.getElementById("wc_connect_btn");
+    if (!btn) {
+        return;
+    }
+    btn.disabled = false;
+    btn.textContent = btn.dataset.defaultText || "Pay with WalletConnect";
+}
+
+async function clearWalletConnectStorage() {
+    try {
+        for (const storage of [window.localStorage, window.sessionStorage]) {
+            for (const key of Object.keys(storage || {})) {
+                if (isWalletConnectStorageKey(key)) {
+                    storage.removeItem(key);
+                }
+            }
+        }
+    } catch (_error) {
+        // Storage cleanup is best-effort only.
+    }
+
+    try {
+        if (!window.indexedDB?.databases) {
+            return;
+        }
+        const databases = await window.indexedDB.databases();
+        await Promise.all((databases || []).map((database) => {
+            const name = database?.name || "";
+            if (!isWalletConnectStorageKey(name)) {
+                return Promise.resolve();
+            }
+            return new Promise((resolve) => {
+                const request = window.indexedDB.deleteDatabase(name);
+                request.onsuccess = resolve;
+                request.onerror = resolve;
+                request.onblocked = resolve;
+            });
+        }));
+    } catch (_error) {
+        // IndexedDB cleanup is best-effort only.
+    }
+}
+
+function isWalletConnectStorageKey(key) {
+    const normalized = String(key || "").toLowerCase();
+    return (
+        normalized.includes("walletconnect")
+        || normalized.includes("wallet_connect")
+        || normalized.includes("wc@")
+        || normalized.includes("wc_")
+        || normalized.includes("w3m")
+        || normalized.includes("reown")
+        || normalized.includes("odoo_crypto_checkout")
+    );
+}
+
 function walletErrorMessage(error) {
     const rawMessage = String(error?.message || error || "");
     if (rawMessage.includes("missing_walletconnect_project_id")) {
@@ -220,8 +368,34 @@ function walletErrorMessage(error) {
     if (rawMessage.includes("walletconnect_provider_not_loaded")) {
         return "WalletConnect could not be loaded. Please refresh and try again.";
     }
+    const errorType = walletErrorType(error);
+    if (errorType === "expired_request") {
+        return "The wallet request expired. Please tap Pay with WalletConnect again and approve it in your wallet.";
+    }
+    if (errorType === "stale_session") {
+        return "WalletConnect session was reset. Please tap Pay with WalletConnect again.";
+    }
     if (error?.code === 4001 || rawMessage.toLowerCase().includes("user rejected")) {
         return "Wallet request was cancelled.";
     }
     return "WalletConnect payment failed. Please try again.";
+}
+
+function walletErrorType(error) {
+    const rawMessage = String(error?.message || error || "");
+    if (
+        rawMessage.includes("Request expired")
+        || rawMessage.toLowerCase().includes("request expired")
+        || rawMessage.toLowerCase().includes("expired. please try again")
+    ) {
+        return "expired_request";
+    }
+    if (
+        rawMessage.includes("session topic doesn't exist")
+        || rawMessage.includes("No matching key")
+        || rawMessage.includes("No matching session")
+    ) {
+        return "stale_session";
+    }
+    return "";
 }

@@ -27,6 +27,8 @@
                 <field name="deposit_address"/>
                 <field name="payment_provider_id"/>
                 <field name="is_default"/>
+                <field name="checkout_address_mode"/>
+                <field name="default_checkout_address_id"/>
                 <field name="is_testnet"/>
                 <field name="confirmed_balance" digits="[12,6]"  readonly="1"/>
                 <field name="total_received" digits="[12,6]"  readonly="1"/>
@@ -91,6 +93,10 @@
                             <field name="currency_id"/>
                             <field name="is_testnet"/>
                             <field name="is_default"/>
+                            <field name="checkout_address_mode"/>
+                            <field name="default_checkout_address_id"
+                                   invisible="checkout_address_mode != 'default_wallet_address'"
+                                   required="checkout_address_mode == 'default_wallet_address'"/>
                             <field name="active"/>
                             <field name="company_id"/>
                         </group>

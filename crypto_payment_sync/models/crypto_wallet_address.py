@@ -200,7 +200,10 @@ class CryptoWalletAddress(models.Model):
         if not address_str:
             raise UserError(_("Address is empty; cannot create event subscription."))
 
-        callback_url = f"{base_url}/invoice_link/crypto/callback/{int(tx_id)}"
+        if self.wallet_id.checkout_address_mode == 'default_wallet_address':
+            callback_url = f"{base_url}/invoice_link/crypto/callback/address/{self.id}"
+        else:
+            callback_url = f"{base_url}/invoice_link/crypto/callback/{int(tx_id)}"
 
         payload = {
             "context": "create_address_event_from_odoo",

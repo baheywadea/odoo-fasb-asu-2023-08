@@ -56,6 +56,24 @@
                                     </div>
                                 </div>
 
+                                <div class="mb-3">
+                                    <small class="text-muted">Manual transfer address</small>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <code class="flex-grow-1 p-2 bg-light rounded" style="word-break: break-all;"
+                                              t-esc="tx.crypto_address.name"/>
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                type="button"
+                                                t-att-data-copy="tx.crypto_address.name">
+                                            Copy
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">
+                                        Send only on
+                                        <b t-esc="network_label"/>
+                                        to this address.
+                                    </small>
+                                </div>
+
                                 <div id="crypto_status_box" class="alert alert-info mb-0">
                                     Waiting for payment confirmation…
                                 </div>

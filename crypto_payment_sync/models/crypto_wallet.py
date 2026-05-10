@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 import time
 from datetime import datetime, timedelta
 from mnemonic import Mnemonic
@@ -27,6 +27,28 @@ class CryptoWallet(models.Model):
 
     is_default = fields.Boolean(string="Is Default",
                                 help="Use this wallet for receiving payments for the selected currency.")
+
+    checkout_address_mode = fields.Selection(
+        [
+            ('unique_per_payment', 'Unique Address per Payment'),
+            ('default_wallet_address', 'Default Wallet Address'),
+        ],
+        string="Checkout Address Mode",
+        default='unique_per_payment',
+        required=True,
+        help=(
+            "Unique Address per Payment gives each checkout its own receiving address. "
+            "Default Wallet Address receives multiple payments on the selected address and relies on "
+            "transaction hash, amount, and review checks for matching."
+        ),
+    )
+
+    default_checkout_address_id = fields.Many2one(
+        'crypto.wallet.address',
+        string="Default Checkout Address",
+        domain="[('wallet_id', '=', id)]",
+        help="Receiving address used when Checkout Address Mode is Default Wallet Address.",
+    )
 
     xpub = fields.Char(string="XPUB (if HD wallet)")
 
@@ -57,6 +79,30 @@ class CryptoWallet(models.Model):
     _sql_constraints = [
         ('xpub_uniq', 'unique (xpub)', 'The xpub Key must be unique!')
     ]
+
+    @api.constrains('default_checkout_address_id', 'checkout_address_mode')
+    def _check_default_checkout_address(self):
+        for record in self:
+            if (
+                record.default_checkout_address_id
+                and record.default_checkout_address_id.wallet_id != record
+            ):
+                raise ValidationError(_("The default checkout address must belong to this wallet."))
+
+    def _get_default_checkout_address(self):
+        self.ensure_one()
+        address = self.default_checkout_address_id or self.wallet_address_ids[:1]
+        if address:
+            return address
+
+        self.derive_new_addresses()
+        address = self.default_checkout_address_id or self.wallet_address_ids[:1]
+        if not address:
+            raise UserError(_(
+                "No default checkout address is available for %(wallet)s. Sync or derive wallet addresses first.",
+                wallet=self.display_name,
+            ))
+        return address
 
     def _compute_transactions_evm_count(self):
         TxEvm = self.env['crypto.transaction.evm']

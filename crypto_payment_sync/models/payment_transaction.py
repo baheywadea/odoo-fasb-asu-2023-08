@@ -53,6 +53,16 @@ class PaymentTransaction(models.Model):
                 "Create or sync a wallet, assign it to this provider, and add wallet addresses."
             ))
 
+        if self.provider_id.state == 'test':
+            wallets = wallets.filtered(lambda wallet: wallet.network_id.is_testnet)
+        elif self.provider_id.state == 'enabled':
+            wallets = wallets.filtered(lambda wallet: not wallet.network_id.is_testnet)
+        if not wallets:
+            raise UserError(_(
+                "No crypto wallet is configured for the provider state. Use a testnet wallet when the provider is "
+                "in Test Mode, or a mainnet wallet when the provider is Enabled."
+            ))
+
         checkout_currency = self._get_crypto_checkout_currency()
         currency_wallets = wallets.filtered(lambda wallet: wallet.currency_id == checkout_currency) if checkout_currency else wallets
         for candidates in (
@@ -67,6 +77,11 @@ class PaymentTransaction(models.Model):
 
     def _reserve_crypto_checkout_address(self, wallet):
         self.ensure_one()
+        if wallet.checkout_address_mode == 'default_wallet_address':
+            address = wallet._get_default_checkout_address()
+            self.write({'crypto_address': address.id})
+            return address
+
         address_obj = self.env["crypto.wallet.address"]
         address = address_obj.search([('payment_transaction_id', '=', self.id)], limit=1)
         if not address:
