@@ -87,6 +87,11 @@ class CryptoTransactionEVM(models.Model):
     @api.model
     def create_from_json(self, data):
         """Create a TRX transaction record from a JSON response"""
+        fee = data.get('fee') or {}
+        value = data.get('value') or {}
+        gas_price = data.get('gasPrice') or {}
+        mined = data.get('minedInBlock') or {}
+        blockchain_specific = data.get('blockchainSpecific') or {}
         return self.create({
             'contract': data.get('contract'),
             'tx_hash': data.get('hash'),
@@ -96,63 +101,49 @@ class CryptoTransactionEVM(models.Model):
             'sender': data.get('sender'),
             'status': data.get('status'),
             'timestamp': datetime.utcfromtimestamp(data.get('timestamp')) if data.get('timestamp') else False,
-
-            'fee_amount': float(data['fee']['amount']) if data.get('fee') else 0.0,
-            'fee_unit': data['fee']['unit'] if data.get('fee') else '',
-
-            'value_amount': float(data['value']['amount']) if data.get('value') else 0.0,
-            'value_unit': data['value']['unit'] if data.get('value') else '',
-
+            'fee_amount': float(fee.get('amount') or 0),
+            'fee_unit': fee.get('unit') or '',
+            'value_amount': float(value.get('amount') or 0),
+            'value_unit': value.get('unit') or '',
             'gas_limit': data.get('gasLimit'),
             'gas_used': data.get('gasUsed'),
-
-            'gas_price_amount': data['gasPrice']['amount'] if data.get('gasPrice') else '',
-            'gas_price_unit': data['gasPrice']['unit'] if data.get('gasPrice') else '',
-
-            'block_hash': data['minedInBlock']['hash'] if data.get('minedInBlock') else '',
-            'block_height': data['minedInBlock']['height'] if data.get('minedInBlock') else '',
-
-            'bandwidth_used': data['blockchainSpecific']['bandwidthUsed'] if data.get('blockchainSpecific') else 0,
-            'energy_used': float(data['blockchainSpecific']['energyUsed']) if data.get(
-                'blockchainSpecific') else 0.0,
+            'gas_price_amount': gas_price.get('amount') or '',
+            'gas_price_unit': gas_price.get('unit') or '',
+            'block_hash': mined.get('hash') or '',
+            'block_height': mined.get('height') or 0,
+            'bandwidth_used': blockchain_specific.get('bandwidthUsed') or 0,
+            'energy_used': float(blockchain_specific.get('energyUsed') or 0),
         })
 
     @api.model
     def create_from_wallet_json(self, data):
         """Create a TRX transaction record from a JSON response"""
+        recipients = data.get('recipient') or []
+        senders = data.get('sender') or []
+        first_recipient = recipients[0] if recipients else {}
+        first_sender = senders[0] if senders else {}
+        fee = data.get('fee') or {}
+        mined = data.get('minedInBlock') or {}
         return self.create({
-            # 'contract': data.get('contract'),
             'tx_hash': data.get('hash'),
             'input_data': data.get('inputData'),
             'position_in_block': data.get('positionInBlock'),
-            'recipient': data['recipient'][0]['address'],
-            'sender': data['sender'][0]['address'],
-            # 'status': data.get('status'),
+            'recipient': first_recipient.get('address') or '',
+            'sender': first_sender.get('address') or '',
             'timestamp': datetime.utcfromtimestamp(data.get('timestamp')) if data.get('timestamp') else False,
-
-            'fee_amount': float(data['fee']['amount']) if data.get('fee') else 0.0,
-            # 'fee_unit': data['fee']['unit'] if data.get('fee') else '',
-
-            'value_amount': float(data['recipient'][0]['amount']) if data.get('recipient') else 0.0,
-            # 'value_unit': data['value']['unit'] if data.get('value') else '',
-
-            # 'gas_limit': data.get('gasLimit'),
-            # 'gas_used': data.get('gasUsed'),
-
-            # 'gas_price_amount': data['gasPrice']['amount'] if data.get('gasPrice') else '',
-            # 'gas_price_unit': data['gasPrice']['unit'] if data.get('gasPrice') else '',
-
-            'block_hash': data['minedInBlock']['hash'] if data.get('minedInBlock') else '',
-            'block_height': data['minedInBlock']['height'] if data.get('minedInBlock') else '',
-
-            # 'bandwidth_used': data['blockchainSpecific']['bandwidthUsed'] if data.get('blockchainSpecific') else 0,
-            # 'energy_used': float(data['blockchainSpecific']['energyUsed']) if data.get(
-            #     'blockchainSpecific') else 0.0,
+            'fee_amount': float(fee.get('amount') or 0),
+            'value_amount': float(first_recipient.get('amount') or 0),
+            'block_hash': mined.get('hash') or '',
+            'block_height': mined.get('height') or 0,
         })
 
     @api.model
     def return_from_json(self, data):
         """Create a TRX transaction record from a JSON response"""
+        fee = data.get('fee') or {}
+        value = data.get('value') or {}
+        gas_price = data.get('gasPrice') or {}
+        mined = data.get('minedInBlock') or {}
         return {
             'contract': data.get('contract'),
             'tx_hash': data.get('hash'),
@@ -162,25 +153,16 @@ class CryptoTransactionEVM(models.Model):
             'sender': data.get('sender'),
             'status': data.get('status'),
             'timestamp': datetime.utcfromtimestamp(data.get('timestamp')) if data.get('timestamp') else False,
-
-            'fee_amount': float(data['fee']['amount']) if data.get('fee') else 0.0,
-            'fee_unit': data['fee']['unit'] if data.get('fee') else '',
-
-            'value_amount': float(data['value']['amount']) if data.get('value') else 0.0,
-            'value_unit': data['value']['unit'] if data.get('value') else '',
-
+            'fee_amount': float(fee.get('amount') or 0),
+            'fee_unit': fee.get('unit') or '',
+            'value_amount': float(value.get('amount') or 0),
+            'value_unit': value.get('unit') or '',
             'gas_limit': data.get('gasLimit'),
             'gas_used': data.get('gasUsed'),
-
-            'gas_price_amount': data['gasPrice']['amount'] if data.get('gasPrice') else '',
-            'gas_price_unit': data['gasPrice']['unit'] if data.get('gasPrice') else '',
-
-            'block_hash': data['minedInBlock']['hash'] if data.get('minedInBlock') else '',
-            'block_height': data['minedInBlock']['height'] if data.get('minedInBlock') else '',
-
-            # 'bandwidth_used': data['blockchainSpecific']['bandwidthUsed'] if data.get('blockchainSpecific') else 0,
-            # 'energy_used': float(data['blockchainSpecific']['energyUsed']) if data.get(
-            #     'blockchainSpecific') else 0.0,
+            'gas_price_amount': gas_price.get('amount') or '',
+            'gas_price_unit': gas_price.get('unit') or '',
+            'block_hash': mined.get('hash') or '',
+            'block_height': mined.get('height') or 0,
         }
 
 
