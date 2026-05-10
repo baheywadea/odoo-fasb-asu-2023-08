@@ -54,6 +54,9 @@ class CryptoPaymentController(http.Controller):
             "tx": tx,
             "token": token,
             "network_label": (tx.crypto_address.wallet_id.network_id.name or "").upper() or "ETH",
+            "walletconnect_project_id": tx.provider_id.walletconnect_project_id
+            or request.env["ir.config_parameter"].sudo().get_param("crypto_payment_sync.walletconnect_project_id")
+            or "",
         }
         return request.render("crypto_payment_sync.crypto_payment_qr_page", values)
 

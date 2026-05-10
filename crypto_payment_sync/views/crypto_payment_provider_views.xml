@@ -48,6 +48,7 @@
                     <field name="cryptoapis_api_key" required="code == 'crypto' and state != 'disabled'"
                            password="True"/>
                     <field name="cryptoapis_api_key_masked" readonly="1"/>
+                    <field name="walletconnect_project_id"/>
                     <field name="cryptoapis_page_size"/>
                     <field name="cryptoapis_max_pages"/>
                     <field name="cryptoapis_request_delay"/>

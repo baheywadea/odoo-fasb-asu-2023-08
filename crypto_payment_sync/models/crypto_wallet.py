@@ -61,9 +61,30 @@ class CryptoWallet(models.Model):
     def _compute_transactions_evm_count(self):
         TxEvm = self.env['crypto.transaction.evm']
         for record in self:
-            record.transactions_evm_count = TxEvm.search_count([
-                ('wallet_address_id.wallet_id', '=', record.id),
-            ])
+            record.transactions_evm_count = TxEvm.search_count(record._get_wallet_transaction_domain())
+
+    def _get_wallet_transaction_domain(self):
+        self.ensure_one()
+        address_names = [address for address in self.wallet_address_ids.mapped('name') if address]
+        domain = [('wallet_address_id.wallet_id', '=', self.id)]
+        if address_names:
+            domain = [
+                '|',
+                '|',
+                ('wallet_address_id.wallet_id', '=', self.id),
+                ('sender', 'in', address_names),
+                ('recipient', 'in', address_names),
+            ]
+        return domain
+
+    def action_view_wallet_transactions(self):
+        self.ensure_one()
+        action = self.env.ref('crypto_payment_sync.action_crypto_transaction_evm_by_wallet_id').read()[0]
+        action['domain'] = self._get_wallet_transaction_domain()
+        action['context'] = {
+            'default_wallet_address_id': self.wallet_address_ids[:1].id if self.wallet_address_ids else False,
+        }
+        return action
 
     @api.depends('wallet_address_ids')
     def _compute_wallet_address_count(self):

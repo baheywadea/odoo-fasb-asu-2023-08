@@ -79,7 +79,7 @@
                         <button class="oe_stat_button" icon="fa-vcard" type="action" name="%(action_crypto_wallet_address_by_wallet)d">
                             <field widget="statinfo" name="wallet_address_count" string="Wallet Address"/>
                         </button>
-                        <button class="oe_stat_button" icon="fa-exchange" type="action" name="%(action_crypto_transaction_evm_by_wallet_id)d">
+                        <button class="oe_stat_button" icon="fa-exchange" type="object" name="action_view_wallet_transactions">
                             <field widget="statinfo" name="transactions_evm_count" string="Wallet Transactions"/>
                         </button>
                     </div>

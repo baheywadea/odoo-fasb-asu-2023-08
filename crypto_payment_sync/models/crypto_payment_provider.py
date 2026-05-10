@@ -18,6 +18,13 @@ class CryptoPaymentProvider(models.Model):
         string="Masked API Key",
         compute="_compute_cryptoapis_api_key_masked",
     )
+    walletconnect_project_id = fields.Char(
+        string="WalletConnect Project ID",
+        compute="_compute_walletconnect_project_id",
+        inverse="_inverse_walletconnect_project_id",
+        readonly=False,
+        help="Project ID from Reown/WalletConnect Cloud used by the public payment page.",
+    )
     payment_provider_id_crypto_wallet_count = fields.Integer(compute="_compute_crypto_wallet_count")
     provider_id_payment_transaction_count = fields.Integer(compute="_compute_crypto_transaction_count")
     cryptoapis_page_size = fields.Integer(
@@ -66,6 +73,22 @@ class CryptoPaymentProvider(models.Model):
                 record.cryptoapis_api_key_masked = "****"
             else:
                 record.cryptoapis_api_key_masked = f"{api_key[:4]}...{api_key[-4:]}"
+
+    def _compute_walletconnect_project_id(self):
+        params = self.env["ir.config_parameter"].sudo()
+        for record in self:
+            record.walletconnect_project_id = params.get_param(
+                record._cryptoapis_config_key("walletconnect_project_id"),
+                params.get_param("crypto_payment_sync.walletconnect_project_id", ""),
+            )
+
+    def _inverse_walletconnect_project_id(self):
+        params = self.env["ir.config_parameter"].sudo()
+        for record in self:
+            params.set_param(
+                record._cryptoapis_config_key("walletconnect_project_id"),
+                record.walletconnect_project_id or "",
+            )
 
     def _cryptoapis_config_key(self, suffix):
         self.ensure_one()
