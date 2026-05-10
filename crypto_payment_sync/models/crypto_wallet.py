@@ -58,10 +58,12 @@ class CryptoWallet(models.Model):
         ('xpub_uniq', 'unique (xpub)', 'The xpub Key must be unique!')
     ]
 
-    @api.depends('transaction_evm_ids')
     def _compute_transactions_evm_count(self):
+        TxEvm = self.env['crypto.transaction.evm']
         for record in self:
-            record['transactions_evm_count'] = len(record.transaction_evm_ids)
+            record.transactions_evm_count = TxEvm.search_count([
+                ('wallet_address_id.wallet_id', '=', record.id),
+            ])
 
     @api.depends('wallet_address_ids')
     def _compute_wallet_address_count(self):
@@ -146,6 +148,8 @@ class CryptoWallet(models.Model):
             # self.message_post(body=_("Wallet created successfully from Crypto APIs."))
 
     def sync_addresses(self):
+        total_created = 0
+        total_existing = 0
         for rec in self:
             provider = rec.payment_provider_id
             provider._cryptoapis_headers()
@@ -164,7 +168,6 @@ class CryptoWallet(models.Model):
                     params={
                         "context": "list_synced_addresses_odoo",
                         "addressFormat": address_format,
-                        "isChangeAddress": 0,
                         "limit": limit,
                         "offset": page * limit,
                     },
@@ -176,9 +179,27 @@ class CryptoWallet(models.Model):
                 for address in wallet_addresses:
                     count += 1
                     address_val = address.get('address')
+                    if not address_val:
+                        continue
                     if not address_obj.search([('name', '=', address_val)], limit=1):
                         address_obj.create({'name': address_val, 'wallet_id': rec.id, 'index': address.get('index')})
+                        total_created += 1
+                    else:
+                        total_existing += 1
                 page += 1
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Crypto Wallet Address Sync"),
+                "message": _("Address sync completed. Created %s address(es), skipped %s existing address(es).") % (
+                    total_created,
+                    total_existing,
+                ),
+                "type": "success",
+                "sticky": False,
+            },
+        }
 
     def get_balance(self):
         for record in self:

@@ -10,7 +10,7 @@
         <field name="name">Crypto EVM Transactions By Wallet</field>
         <field name="res_model">crypto.transaction.evm</field>
         <field name="view_mode">list,form</field>
-        <field name="domain">[('wallet_id','=',active_id)]</field>
+        <field name="domain">[('wallet_address_id.wallet_id','=',active_id)]</field>
     </record>
 
     <record id="view_crypto_wallet_list" model="ir.ui.view">
@@ -79,7 +79,7 @@
                         <button class="oe_stat_button" icon="fa-vcard" type="action" name="%(action_crypto_wallet_address_by_wallet)d">
                             <field widget="statinfo" name="wallet_address_count" string="Wallet Address"/>
                         </button>
-                        <button class="oe_stat_button" icon="fa-list" type="action" name="%(action_crypto_transaction_evm_by_wallet_id)d">
+                        <button class="oe_stat_button" icon="fa-exchange" type="action" name="%(action_crypto_transaction_evm_by_wallet_id)d">
                             <field widget="statinfo" name="transactions_evm_count" string="Wallet Transactions"/>
                         </button>
                     </div>
