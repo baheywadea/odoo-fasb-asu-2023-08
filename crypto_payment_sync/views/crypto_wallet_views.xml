@@ -73,10 +73,15 @@
                             type="object"
                             string="Derive New Address"
                             class="btn-primary"/>
-
-
                 </header>
                 <sheet>
+                    <div class="alert alert-warning" role="alert"
+                         groups="crypto_payment_sync.group_crypto_admin"
+                         invisible="not mnemonic_present">
+                        A sensitive mnemonic is stored on this wallet. Do not copy or expose it in production.
+                        Prefer XPUB and read-only address workflows. Remove stored seed phrases through a controlled
+                        administrator migration procedure.
+                    </div>
                     <div name="button_box" class="oe_button_box">
                         <button class="oe_stat_button" icon="fa-vcard" type="action" name="%(action_crypto_wallet_address_by_wallet)d">
                             <field widget="statinfo" name="wallet_address_count" string="Wallet Address"/>
@@ -104,7 +109,10 @@
                             <field name="payment_provider_id"/>
                             <field name="network_id"/>
                             <field name="xpub"/>
-                            <field name="mnemonic" password="True" groups="crypto_payment_sync.group_crypto_admin"/>
+                            <field name="mnemonic_present" readonly="1"
+                                   groups="crypto_payment_sync.group_crypto_admin"/>
+                            <field name="mnemonic" password="True" readonly="1"
+                                   groups="crypto_payment_sync.group_crypto_admin"/>
                             <field name="wallet_id"/>
                             <field name="deposit_address"/>
                             <field name="confirmed_balance" digits="[12,6]"  readonly="1"/>

@@ -1,9 +1,12 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
+import logging
 import time
 from datetime import datetime, timedelta
 from mnemonic import Mnemonic
 from bip32 import BIP32
+
+_logger = logging.getLogger(__name__)
 
 
 class CryptoWallet(models.Model):
@@ -52,7 +55,20 @@ class CryptoWallet(models.Model):
 
     xpub = fields.Char(string="XPUB (if HD wallet)")
 
-    mnemonic = fields.Char(string="Mnemonic Seed (Encrypted)")  # Store the seed securely!
+    mnemonic = fields.Char(
+        string="Sensitive Mnemonic Seed",
+        copy=False,
+        groups="crypto_payment_sync.group_crypto_admin",
+        help=(
+            "Sensitive seed phrase retained only for legacy/test workflows. "
+            "Production workflows should use read-only XPUB/address ingestion and should not store seed phrases."
+        ),
+    )
+
+    mnemonic_present = fields.Boolean(
+        string="Mnemonic Stored",
+        compute="_compute_mnemonic_present",
+    )
 
     active = fields.Boolean(default=True)
 
@@ -88,6 +104,29 @@ class CryptoWallet(models.Model):
                 and record.default_checkout_address_id.wallet_id != record
             ):
                 raise ValidationError(_("The default checkout address must belong to this wallet."))
+
+    @api.depends('mnemonic')
+    def _compute_mnemonic_present(self):
+        for record in self:
+            record.mnemonic_present = bool(record.mnemonic)
+
+    def action_clear_mnemonic(self):
+        if not self.env.user.has_group("crypto_payment_sync.group_crypto_admin"):
+            raise AccessError(_("Only Crypto Accounting Managers can clear stored mnemonic values."))
+        for record in self:
+            if record.mnemonic:
+                record.mnemonic = False
+                _logger.warning("Stored mnemonic cleared for crypto wallet id=%s", record.id)
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Mnemonic Cleared"),
+                "message": _("The stored mnemonic value was cleared from this wallet."),
+                "type": "success",
+                "sticky": False,
+            },
+        }
 
     def _get_default_checkout_address(self):
         self.ensure_one()

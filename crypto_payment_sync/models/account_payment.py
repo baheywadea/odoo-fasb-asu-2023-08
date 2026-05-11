@@ -61,17 +61,15 @@ class AccountPayment(models.Model):
                     'recipient': record.to_address_id.name,
                     'sender': record.from_address_id.name,
                     'value_amount': record.amount,
-                    'wallet_address_id': wallet_address_id.id
+                    'wallet_address_id': wallet_address_id.id,
+                    'status': 'prepared_no_broadcast',
                 })
                 record.write({'crypto_transaction_id': trans.id})
                 allow_broadcast = self.env['ir.config_parameter'].sudo().get_param(
                     'crypto_payment_sync.allow_transaction_broadcast'
                 ) == '1'
                 if not allow_broadcast:
-                    raise UserError(_(
-                        "Automatic crypto transaction signing and broadcast is disabled by default. "
-                        "Set crypto_payment_sync.allow_transaction_broadcast to 1 only in an approved test workflow."
-                    ))
+                    continue
                 trans.send_native_from_odoo()
                 continue  # Move to next record
 
@@ -110,7 +108,6 @@ class AccountPayment(models.Model):
                 })
 
         return super(AccountPayment, self).action_post()
-
 
 
 

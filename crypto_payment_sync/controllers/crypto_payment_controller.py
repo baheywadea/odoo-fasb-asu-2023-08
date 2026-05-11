@@ -4,6 +4,7 @@ import logging
 import requests
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from io import BytesIO
+from urllib.parse import urlparse
 
 from odoo import http
 from odoo.http import request
@@ -341,7 +342,7 @@ class CryptoPaymentController(http.Controller):
 
     def _network_rpc_url(self, network):
         rpc_url = (network.rpc_url or "").strip()
-        if rpc_url and "YOUR_PROJECT_ID" not in rpc_url and rpc_url != "read-only-provider":
+        if self._is_usable_rpc_url(rpc_url):
             return rpc_url
         defaults = {
             1: "https://ethereum.publicnode.com",
@@ -355,7 +356,15 @@ class CryptoPaymentController(http.Controller):
         }
         return defaults.get(int(network.chain_id or 0), "")
 
+    def _is_usable_rpc_url(self, rpc_url):
+        if not rpc_url or "YOUR_PROJECT_ID" in rpc_url or rpc_url == "read-only-provider":
+            return False
+        parsed = urlparse(rpc_url)
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
     def _evm_rpc(self, rpc_url, method, params):
+        if not self._is_usable_rpc_url(rpc_url):
+            return None
         try:
             response = requests.post(
                 rpc_url,
@@ -369,7 +378,7 @@ class CryptoPaymentController(http.Controller):
             )
             response.raise_for_status()
             payload = response.json()
-        except (requests.RequestException, ValueError) as exc:
+        except Exception as exc:
             _logger.info("Read-only EVM RPC check failed for %s: %s", method, exc)
             return None
         if payload.get("error"):
