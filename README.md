@@ -56,6 +56,7 @@ All accounting and tax-related outputs should be treated as reviewable support m
 │   ├── views/                            # Odoo XML views, menus, and templates
 │   └── __manifest__.py                   # Odoo module manifest
 ├── docs/                                 # Architecture, standards mapping, professional-review scope, and disclaimers
+├── exhibit_assets/                       # Short exhibit-support checklist and repository snapshot notes
 ├── examples/                             # Demonstration workflow notes
 ├── sample_data/                          # Fake input transaction data for documentation and testing
 ├── sample_outputs/                       # Fake output examples for reviewable support materials
@@ -127,13 +128,26 @@ The sample workflow is a demonstration pattern. It is designed to support profes
 - [Professional Review Scope](docs/professional_review_scope.md)
 - [Roadmap](docs/roadmap.md)
 - [Disclaimer](docs/disclaimer.md)
+- [Repository Evidence Summary](exhibit_assets/P1-K_repository_evidence_summary.md)
+
+## Project Files
+
+- [Documentation folder](docs/)
+- [Sample data folder](sample_data/)
+- [Sample outputs folder](sample_outputs/)
+- [CHANGELOG](CHANGELOG.md)
+- [CONTRIBUTING](CONTRIBUTING.md)
+- [SECURITY](SECURITY.md)
+- [LICENSE](LICENSE)
 
 ## Sample Files
 
 - `sample_data/digital_asset_transactions.csv` - fake transaction source data.
+- `sample_data/README.md` - fake-data boundary and handling note.
 - `sample_data/cryptoapis_evm_transactions_sample.json` - fake Crypto APIs-style EVM transaction fixture.
 - `sample_data/cryptoapis_utxo_transactions_sample.json` - fake UTXO-style transaction fixture.
 - `sample_data/cryptoapis_exchange_rates_sample.json` - fake exchange-rate fixture.
+- `sample_outputs/README.md` - fake-output boundary and professional-review note.
 - `sample_outputs/normalized_transactions_sample.csv` - demonstration normalized ledger output.
 - `sample_outputs/fair_value_records_sample.csv` - demonstration fair-value support records.
 - `sample_outputs/fair_value_measurements_sample.csv` - demonstration fair-value measurement output.

@@ -21,7 +21,7 @@ The goal is to preserve and normalize transaction data that may help tax profess
 
 ## Implementation Notes
 
-The current repository contains Odoo records that can preserve provider, wallet, network, and transaction references. Future implementation phases may add structured 1099-DA readiness exports for professional review.
+The current repository contains Odoo support records that can preserve provider, wallet, network, and transaction references, plus a fake sample 1099-DA readiness output for professional review. Future implementation phases may extend validated export workflows and reviewer controls.
 
 ## Important Limitations
 
