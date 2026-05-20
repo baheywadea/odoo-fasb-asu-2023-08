@@ -6,7 +6,7 @@
     'website': 'https://www.linkedin.com/in/baheywadeahakim/',
     "maintainer": "Bahey Wadea",
     'category': 'Accounting/Payment Acquirers',
-    'depends': ['account', 'website_sale', 'payment'],
+    'depends': ['account', 'website_sale', 'payment', 'mail'],
     'data': [
         'data/crypto_groups.xml',
         'security/ir.model.access.csv',
@@ -26,6 +26,8 @@
         'views/crypto_transaction_evm_views.xml',
         'views/crypto_wallet_address_event_views.xml',
         'views/crypto_accounting_support_views.xml',
+        'views/account_move_line_traceability_views.xml',
+        'reports/crypto_review_reports.xml',
         'views/crypto_menu.xml',
         'views/res_partner_views.xml',
         'views/account_journal_views.xml',

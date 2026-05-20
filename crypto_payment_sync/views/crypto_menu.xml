@@ -87,13 +87,22 @@
     <menuitem id="menu_crypto_partner_addresses" name="Partner Crypto Addresses" parent="menu_crypto_config"
               action="action_res_partner_crypto_address" sequence="70"/>
 
-    <menuitem id="menu_crypto_ingestion" name="Ingestion" parent="menu_crypto_transaction_root" sequence="30"/>
+    <menuitem id="menu_crypto_ingestion" name="External Ingestion" parent="menu_crypto_transaction_root" sequence="30"/>
 
-    <menuitem id="menu_crypto_normalized_transactions" name="Normalized Transactions"
+    <menuitem id="menu_crypto_sync_odoo_activity" name="Sync Odoo Crypto Activity"
+              parent="menu_crypto_ingestion" action="action_sync_odoo_crypto_activity" sequence="1"/>
+
+    <menuitem id="menu_crypto_import_batches" name="Import Batches"
+              parent="menu_crypto_ingestion" action="action_crypto_import_batch" sequence="5"/>
+
+    <menuitem id="menu_crypto_raw_transactions" name="Raw External Transactions"
+              parent="menu_crypto_ingestion" action="action_crypto_raw_transaction" sequence="7"/>
+
+    <menuitem id="menu_crypto_normalized_transactions" name="External Normalization Support"
               parent="menu_crypto_ingestion" action="action_crypto_normalized_transaction" sequence="10"/>
 
     <menuitem id="menu_crypto_exceptions" name="Exceptions"
-              parent="menu_crypto_ingestion" action="action_crypto_normalized_transaction_exceptions"
+              parent="menu_crypto_ingestion" action="action_crypto_ingestion_exception"
               sequence="20"/>
 
     <menuitem id="menu_crypto_payment_transactions" name="Payment Transactions"
@@ -127,6 +136,5 @@
 
     <menuitem id="menu_crypto_form8949_reconciliation" name="Form 8949 Reconciliation"
               parent="menu_crypto_review" action="action_crypto_form8949_reconciliation" sequence="30"/>
-
 
 </odoo>

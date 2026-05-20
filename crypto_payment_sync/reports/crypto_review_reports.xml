@@ -1,0 +1,424 @@
+<odoo>
+    <record id="paperformat_crypto_1099da_draft" model="report.paperformat">
+        <field name="name">Crypto 1099-DA Draft Form</field>
+        <field name="default" eval="False"/>
+        <field name="format">Letter</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">6</field>
+        <field name="margin_bottom">6</field>
+        <field name="margin_left">6</field>
+        <field name="margin_right">6</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="paperformat_crypto_8949_draft" model="report.paperformat">
+        <field name="name">Crypto 8949 Draft Form</field>
+        <field name="default" eval="False"/>
+        <field name="format">Letter</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">6</field>
+        <field name="margin_bottom">6</field>
+        <field name="margin_left">6</field>
+        <field name="margin_right">6</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="action_report_crypto_cpa_review_package" model="ir.actions.report">
+        <field name="name">CPA Review Package</field>
+        <field name="model">crypto.audit.evidence.package</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">crypto_payment_sync.report_crypto_cpa_review_package</field>
+        <field name="report_file">crypto_payment_sync.report_crypto_cpa_review_package</field>
+        <field name="binding_model_id" ref="model_crypto_audit_evidence_package"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'CPA Review Package - %s' % (object.name)</field>
+    </record>
+
+    <record id="action_report_crypto_1099da_readiness" model="ir.actions.report">
+        <field name="name">1099-DA Readiness Support</field>
+        <field name="model">crypto.audit.evidence.package</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">crypto_payment_sync.report_crypto_1099da_readiness</field>
+        <field name="report_file">crypto_payment_sync.report_crypto_1099da_readiness</field>
+        <field name="binding_model_id" ref="model_crypto_audit_evidence_package"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="crypto_payment_sync.paperformat_crypto_1099da_draft"/>
+        <field name="print_report_name">'1099-DA Readiness - %s' % (object.name)</field>
+    </record>
+
+    <record id="action_report_crypto_8949_support" model="ir.actions.report">
+        <field name="name">Form 8949 Reconciliation Support</field>
+        <field name="model">crypto.audit.evidence.package</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">crypto_payment_sync.report_crypto_8949_support</field>
+        <field name="report_file">crypto_payment_sync.report_crypto_8949_support</field>
+        <field name="binding_model_id" ref="model_crypto_audit_evidence_package"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="crypto_payment_sync.paperformat_crypto_8949_draft"/>
+        <field name="print_report_name">'8949 Support - %s' % (object.name)</field>
+    </record>
+
+    <template id="crypto_report_disclaimer">
+        <p class="small text-muted" style="margin-top: 12px;">
+            This report is review-ready support material for accounting and tax-preparer review.
+            It is not an official tax filing, audit opinion, legal advice, tax advice, or a substitute
+            for professional judgment. It does not connect to government filing systems.
+        </p>
+    </template>
+
+    <template id="crypto_report_header">
+        <h2 t-esc="doc.name"/>
+        <table class="table table-sm o_main_table" style="width: 100%; margin-bottom: 12px;">
+            <tbody>
+                <tr>
+                    <td><strong>Company</strong></td>
+                    <td t-esc="doc.company_id.display_name"/>
+                    <td><strong>Period</strong></td>
+                    <td>
+                        <span t-esc="doc.period_start"/>
+                        <span> to </span>
+                        <span t-esc="doc.period_end"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Status</strong></td>
+                    <td t-esc="dict(doc._fields['status'].selection).get(doc.status)"/>
+                    <td><strong>Last Updated</strong></td>
+                    <td t-esc="doc.write_date or doc.create_date"/>
+                </tr>
+                <tr>
+                    <td><strong>Reviewed By</strong></td>
+                    <td t-esc="doc.reviewed_by_id.display_name or 'Pending review'"/>
+                    <td><strong>Reviewed Date</strong></td>
+                    <td t-esc="doc.reviewed_date or ''"/>
+                </tr>
+            </tbody>
+        </table>
+    </template>
+
+    <template id="report_crypto_cpa_review_package">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <t t-call="crypto_payment_sync.crypto_report_header"/>
+                        <h3>CPA / Accountant Review Package</h3>
+                        <t t-call="crypto_payment_sync.crypto_report_disclaimer"/>
+
+                        <h4>Evidence Summary</h4>
+                        <table class="table table-sm o_main_table">
+                            <tbody>
+                                <tr>
+                                    <td>Odoo payment transactions</td>
+                                    <td class="text-end" t-esc="len(doc.payment_transaction_ids)"/>
+                                    <td>Odoo account payments</td>
+                                    <td class="text-end" t-esc="len(doc.account_payment_ids)"/>
+                                </tr>
+                                <tr>
+                                    <td>Odoo journal lines with crypto traceability</td>
+                                    <td class="text-end" t-esc="len(doc.account_move_line_ids)"/>
+                                    <td>External normalization support records</td>
+                                    <td class="text-end" t-esc="len(doc.normalized_transaction_ids)"/>
+                                </tr>
+                                <tr>
+                                    <td>1099-DA readiness lines</td>
+                                    <td class="text-end" t-esc="len(doc.tax_1099da_ids)"/>
+                                    <td>Form 8949 support lines</td>
+                                    <td class="text-end" t-esc="len(doc.form8949_ids)"/>
+                                </tr>
+                                <tr>
+                                    <td>Reconciliation records</td>
+                                    <td class="text-end" t-esc="len(doc.reconciliation_status_ids)"/>
+                                    <td>Exceptions</td>
+                                    <td class="text-end" t-esc="doc.exception_count"/>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h4>Transaction-Level Crypto Activity</h4>
+                        <table class="table table-sm o_main_table">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Asset</th>
+                                    <th class="text-end">Quantity</th>
+                                    <th class="text-end">Amount</th>
+                                    <th>Hash</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="doc.payment_transaction_ids" t-as="tx">
+                                    <td t-esc="tx.reference"/>
+                                    <td t-esc="tx.create_date"/>
+                                    <td t-esc="tx.partner_id.display_name"/>
+                                    <td t-esc="(tx.currency_id.name if tx.currency_id and tx.currency_id.type == 'crypto' else (tx.crypto_address.wallet_id.currency_id.name if tx.crypto_address and tx.crypto_address.wallet_id else ''))"/>
+                                    <td class="text-end" t-esc="'%.8f' % (tx.crypto_amount_eth or (tx.amount if tx.currency_id and tx.currency_id.type == 'crypto' else 0.0))"/>
+                                    <td class="text-end" t-esc="'%.2f' % (tx.amount or 0.0)"/>
+                                    <td>
+                                        <span t-esc="tx.crypto_tx_hash or ''"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h4>Odoo Journal Line Traceability</h4>
+                        <table class="table table-sm o_main_table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Move</th>
+                                    <th>Account</th>
+                                    <th>Partner</th>
+                                    <th class="text-end">Debit</th>
+                                    <th class="text-end">Credit</th>
+                                    <th>Trace Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="doc.account_move_line_ids" t-as="line">
+                                    <td t-esc="line.date"/>
+                                    <td t-esc="line.move_id.name or line.move_id.ref"/>
+                                    <td t-esc="line.account_id.display_name"/>
+                                    <td t-esc="line.partner_id.display_name"/>
+                                    <td class="text-end" t-esc="'%.2f' % (line.debit or 0.0)"/>
+                                    <td class="text-end" t-esc="'%.2f' % (line.credit or 0.0)"/>
+                                    <td t-esc="dict(line._fields['crypto_review_status'].selection).get(line.crypto_review_status)"/>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h4>Reviewer Notes</h4>
+                        <p t-esc="doc.reviewer_notes or 'Pending professional review.'"/>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_crypto_1099da_readiness">
+        <t t-call="web.html_container">
+            <style>
+                @page { margin: 6mm; }
+                body { font-family: Arial, Helvetica, sans-serif; color: #000; }
+                .irs1099 { page-break-after: always; font-size: 10px; line-height: 1.15; }
+                .irs1099 table { border-collapse: collapse; width: 100%; }
+                .irs1099 td, .irs1099 th { border: 1px solid #000; vertical-align: top; padding: 3px 4px; }
+                .irs1099 .no-border, .irs1099 .no-border td { border: 0; }
+                .irs1099 .form-number { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+                .irs1099 .form-title { font-size: 13px; font-weight: 700; }
+                .irs1099 .copy-title { font-size: 15px; font-weight: 700; text-align: right; }
+                .irs1099 .small { font-size: 8px; }
+                .irs1099 .label { font-size: 8px; font-weight: 700; display: block; }
+                .irs1099 .value { font-size: 11px; display: block; min-height: 18px; word-break: break-word; }
+                .irs1099 .money { text-align: right; font-size: 12px; }
+                .irs1099 .draft { border: 2px solid #000; text-align: center; font-weight: 700; padding: 5px; margin: 5px 0; }
+                .irs1099 .left-pane { width: 38%; }
+                .irs1099 .right-pane { width: 62%; }
+            </style>
+            <t t-foreach="docs" t-as="doc">
+                <div t-if="not doc.tax_1099da_ids" class="irs1099">
+                    <div class="form-number">Form 1099-DA</div>
+                    <div class="draft">DRAFT / PREPARER REVIEW COPY - NO READINESS LINES GENERATED</div>
+                    <t t-call="crypto_payment_sync.crypto_report_disclaimer"/>
+                </div>
+                <t t-foreach="doc.tax_1099da_ids" t-as="line">
+                    <t t-set="tx" t-value="line.normalized_transaction_id.payment_transaction_id"/>
+                    <t t-set="recipient" t-value="tx.partner_id if tx else False"/>
+                    <div class="irs1099">
+                        <table class="no-border">
+                            <tr>
+                                <td style="width: 22%;">
+                                    <span class="small">Form</span>
+                                    <span class="form-number">1099-DA</span>
+                                </td>
+                                <td style="width: 48%; text-align: center;">
+                                    <div class="form-title">Digital Asset Proceeds From Broker Transactions</div>
+                                    <div class="small">Draft substitute-style recipient statement for preparer review</div>
+                                </td>
+                                <td style="width: 30%;">
+                                    <div class="copy-title">Copy B / Review Copy</div>
+                                    <div class="small">For recipient and tax preparer review</div>
+                                </td>
+                            </tr>
+                        </table>
+                        <div class="draft">DRAFT / PREPARER REVIEW COPY - NOT AN OFFICIAL IRS FILING</div>
+                        <table>
+                            <tr>
+                                <td class="left-pane" rowspan="9">
+                                    <span class="label">PAYER'S name, street address, city or town, state or province, country, ZIP or foreign postal code</span>
+                                    <span class="value" t-esc="doc.company_id.display_name"/>
+                                    <span class="value" t-esc="doc.company_id.partner_id.contact_address or 'Address not configured'"/>
+                                    <br/>
+                                    <span class="label">PAYER'S TIN</span>
+                                    <span class="value" t-esc="doc.company_id.vat or 'Not configured'"/>
+                                    <span class="label">RECIPIENT'S TIN</span>
+                                    <span class="value" t-esc="recipient.vat if recipient and recipient.vat else 'Not configured'"/>
+                                    <span class="label">RECIPIENT'S name</span>
+                                    <span class="value" t-esc="recipient.display_name if recipient else 'Needs Review'"/>
+                                    <span class="label">Street address, city or town, state or province, country, ZIP or foreign postal code</span>
+                                    <span class="value" t-esc="recipient.contact_address if recipient and recipient.contact_address else 'Needs Review'"/>
+                                    <span class="label">Account number</span>
+                                    <span class="value" t-esc="tx.reference if tx else line.broker_source_reference or 'Needs Review'"/>
+                                </td>
+                                <td><span class="label">1a Date/time sold or disposed</span><span class="value" t-esc="line.transaction_datetime or 'Needs Review'"/></td>
+                                <td><span class="label">Tax year</span><span class="value" t-esc="doc.period_end.year if doc.period_end else 'Needs Review'"/></td>
+                            </tr>
+                            <tr>
+                                <td><span class="label">1b Digital asset code</span><span class="value" t-esc="line.asset_symbol or 'Needs Review'"/></td>
+                                <td><span class="label">1c Number of units</span><span class="value money" t-esc="'%.8f' % (line.quantity or 0.0)"/></td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><span class="label">1d Digital asset description</span><span class="value" t-esc="(line.asset_symbol or 'Digital asset') + ' digital asset'"/></td>
+                            </tr>
+                            <tr>
+                                <td><span class="label">1f Gross proceeds</span><span class="value money" t-esc="'%.2f' % (line.gross_proceeds_support or 0.0)"/></td>
+                                <td><span class="label">2 Cost or other basis</span><span class="value money" t-esc="'%.2f' % line.cost_basis_support if line.cost_basis_support else 'Not captured'"/></td>
+                            </tr>
+                            <tr>
+                                <td><span class="label">Basis reported</span><span class="value">Preparer Review</span></td>
+                                <td><span class="label">Federal income tax withheld</span><span class="value money">0.00</span></td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><span class="label">Wallet / source address</span><span class="value" t-esc="line.wallet_source_reference or 'Needs Review'"/></td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><span class="label">Blockchain transaction hash / source reference</span><span class="value" t-esc="line.transaction_hash or 'Needs Review'"/></td>
+                            </tr>
+                            <tr>
+                                <td><span class="label">Broker/source</span><span class="value" t-esc="line.broker_source_reference or 'Odoo Crypto Payment'"/></td>
+                                <td><span class="label">Review status</span><span class="value" t-esc="dict(line._fields['status'].selection).get(line.status)"/></td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><span class="label">Preparer notes</span><span class="value" t-esc="line.reviewer_notes or line.missing_data_notes or 'Pending professional review.'"/></td>
+                            </tr>
+                        </table>
+                        <div class="small" style="margin-top: 5px;">
+                            This draft statement is generated for accounting and tax-preparer review. It is not an official filing and does not connect to government filing systems.
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_crypto_8949_support">
+        <t t-call="web.html_container">
+            <style>
+                @page { margin: 6mm; size: Letter landscape; }
+                body { font-family: Arial, Helvetica, sans-serif; color: #000; }
+                .irs8949 { font-size: 9px; line-height: 1.1; }
+                .irs8949 table { border-collapse: collapse; width: 100%; }
+                .irs8949 td, .irs8949 th { border: 1px solid #000; padding: 3px; vertical-align: top; }
+                .irs8949 .no-border, .irs8949 .no-border td { border: 0; }
+                .irs8949 .form-number { font-size: 24px; font-weight: 700; }
+                .irs8949 .title { font-size: 16px; font-weight: 700; text-align: center; }
+                .irs8949 .draft { border: 2px solid #000; text-align: center; font-weight: 700; padding: 5px; margin: 5px 0; }
+                .irs8949 .small { font-size: 8px; }
+                .irs8949 .box-label { font-weight: 700; font-size: 8px; }
+                .irs8949 .money { text-align: right; }
+                .irs8949 th { text-align: center; font-size: 8px; }
+            </style>
+            <t t-foreach="docs" t-as="doc">
+                <div class="irs8949">
+                    <table class="no-border">
+                        <tr>
+                            <td style="width: 20%;"><span class="form-number">Form 8949</span></td>
+                            <td style="width: 55%;" class="title">Sales and Other Dispositions of Capital Assets</td>
+                            <td style="width: 25%; text-align: right;">
+                                <strong>Tax year</strong>
+                                <div t-esc="doc.period_end.year if doc.period_end else 'Needs Review'"/>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="draft">DRAFT ATTACHMENT STATEMENT / PREPARER REVIEW COPY - NOT AN OFFICIAL IRS FILING</div>
+                    <table>
+                        <tr>
+                            <td style="width: 55%;"><span class="box-label">Name(s) shown on return</span><br/><span t-esc="doc.company_id.display_name"/></td>
+                            <td style="width: 20%;"><span class="box-label">TIN</span><br/><span t-esc="doc.company_id.vat or 'Needs Review'"/></td>
+                            <td style="width: 25%;"><span class="box-label">Package</span><br/><span t-esc="doc.name"/></td>
+                        </tr>
+                    </table>
+                    <table style="margin-top: 4px;">
+                        <tr>
+                            <td>
+                                <strong>Part I / Part II classification support.</strong>
+                                [ ] Short-term with basis reported
+                                [ ] Short-term with basis not reported
+                                [X] Digital asset transactions requiring preparer classification review
+                            </td>
+                        </tr>
+                    </table>
+                    <t t-set="has_form_lines" t-value="bool(doc.form8949_ids)"/>
+                    <t t-set="fallback_txs" t-value="doc.payment_transaction_ids"/>
+                    <t t-set="total_proceeds" t-value="sum(doc.form8949_ids.mapped('proceeds_support')) if has_form_lines else sum(fallback_txs.mapped('amount'))"/>
+                    <t t-set="total_basis" t-value="sum(doc.form8949_ids.mapped('cost_basis_support')) if has_form_lines else 0.0"/>
+                    <t t-set="total_gain_loss" t-value="sum(doc.form8949_ids.mapped('gain_loss_support')) if has_form_lines else 0.0"/>
+                    <table style="margin-top: 5px;">
+                        <thead>
+                            <tr>
+                                <th style="width: 22%;">(a) Description of property</th>
+                                <th style="width: 9%;">(b) Date acquired</th>
+                                <th style="width: 9%;">(c) Date sold or disposed</th>
+                                <th style="width: 10%;">(d) Proceeds</th>
+                                <th style="width: 10%;">(e) Cost or other basis</th>
+                                <th style="width: 7%;">(f) Code(s)</th>
+                                <th style="width: 10%;">(g) Adjustment amount</th>
+                                <th style="width: 10%;">(h) Gain or loss</th>
+                                <th style="width: 13%;">Source / Review</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-if="not has_form_lines and not fallback_txs">
+                                <td colspan="9">No digital-asset payment transactions are included in this package.</td>
+                            </tr>
+                            <t t-if="has_form_lines">
+                                <tr t-foreach="doc.form8949_ids" t-as="line">
+                                    <td t-esc="line.description_of_property"/>
+                                    <td t-esc="line.date_acquired or 'Needs Review'"/>
+                                    <td t-esc="line.date_disposed or 'Needs Review'"/>
+                                    <td class="money" t-esc="'%.2f' % (line.proceeds_support or 0.0)"/>
+                                    <td class="money" t-esc="'%.2f' % (line.cost_basis_support or 0.0) if line.cost_basis_support else 'Not captured'"/>
+                                    <td>Review</td>
+                                    <td class="money">Preparer Review</td>
+                                    <td class="money" t-esc="'%.2f' % (line.gain_loss_support or 0.0) if line.cost_basis_support else 'Basis pending'"/>
+                                    <td><span t-esc="line.source_links or ''"/><br/><span t-esc="dict(line._fields['status'].selection).get(line.status)"/></td>
+                                </tr>
+                            </t>
+                            <t t-if="not has_form_lines">
+                                <tr t-foreach="fallback_txs" t-as="tx">
+                                    <td t-esc="((tx.currency_id.name if tx.currency_id and tx.currency_id.type == 'crypto' else (tx.crypto_address.wallet_id.currency_id.name if tx.crypto_address and tx.crypto_address.wallet_id else 'Crypto')) + ' digital asset payment review')"/>
+                                    <td>Needs Review</td>
+                                    <td t-esc="tx.create_date.date() if tx.create_date else 'Needs Review'"/>
+                                    <td class="money" t-esc="'%.2f' % (tx.amount or 0.0)"/>
+                                    <td class="money">Not captured</td>
+                                    <td>Review</td>
+                                    <td class="money">Preparer Review</td>
+                                    <td class="money">Basis pending</td>
+                                    <td><span t-esc="tx.crypto_tx_hash or tx.reference"/><br/>Generated from Odoo payment transaction</td>
+                                </tr>
+                            </t>
+                            <tr>
+                                <td colspan="3"><strong>Totals for preparer review</strong></td>
+                                <td class="money"><strong t-esc="'%.2f' % (total_proceeds or 0.0)"/></td>
+                                <td class="money"><strong t-esc="'%.2f' % (total_basis or 0.0)"/></td>
+                                <td></td>
+                                <td></td>
+                                <td class="money"><strong t-esc="'%.2f' % (total_gain_loss or 0.0)"/></td>
+                                <td>Review required before use.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="small" style="margin-top: 5px;">
+                        Lot-level cost basis, holding period, adjustment codes, and final reportability must be confirmed by the tax preparer.
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

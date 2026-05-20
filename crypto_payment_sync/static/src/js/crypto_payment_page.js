@@ -8,6 +8,7 @@ let walletConnectBound = false;
 let walletConnectGuardBound = false;
 let activeWalletConnectProvider = null;
 let walletConnectAttempt = 0;
+let walletConnectResetting = false;
 
 bindWalletConnectErrorGuard();
 
@@ -185,7 +186,6 @@ function setupWalletConnect(txId, token, projectId) {
 
     btn.addEventListener("click", async () => {
         walletConnectAttempt += 1;
-        const attempt = walletConnectAttempt;
         const oldText = btn.textContent;
         btn.dataset.defaultText = oldText;
         btn.disabled = true;
@@ -198,21 +198,15 @@ function setupWalletConnect(txId, token, projectId) {
 
             btn.textContent = "Opening WalletConnect...";
             setWalletStatus("Preparing WalletConnect session...");
+            const intent = await getPaymentIntent(txId, token);
+
             await withTimeout(
                 cleanupActiveWalletConnectProvider(),
                 1500,
                 "walletconnect_cleanup_timeout"
             ).catch(() => {});
-            await withTimeout(
-                clearWalletConnectStorage(),
-                1500,
-                "walletconnect_storage_cleanup_timeout"
-            ).catch(() => {});
 
-            const [EthereumProvider, intent] = await Promise.all([
-                loadEthereumProvider(),
-                getPaymentIntent(txId, token),
-            ]);
+            const EthereumProvider = await loadEthereumProvider();
             if (!EthereumProvider?.init) {
                 throw new Error("walletconnect_provider_not_loaded");
             }
@@ -220,10 +214,13 @@ function setupWalletConnect(txId, token, projectId) {
             provider = await EthereumProvider.init({
                 projectId,
                 chains: [intent.chainId],
-                customStoragePrefix: `odoo_crypto_checkout_${txId}_${attempt}_${Date.now()}`,
+                optionalChains: [intent.chainId],
+                customStoragePrefix: `odoo_crypto_checkout_${txId}_${walletConnectAttempt}_${Date.now()}`,
                 showQrModal: true,
-                methods: ["eth_sendTransaction"],
-                events: ["accountsChanged", "chainChanged", "disconnect"],
+                methods: ["eth_sendTransaction", "personal_sign"],
+                optionalMethods: ["wallet_switchEthereumChain", "wallet_addEthereumChain"],
+                events: ["chainChanged", "accountsChanged", "disconnect"],
+                optionalEvents: ["chainChanged", "accountsChanged", "disconnect"],
                 rpcMap: buildRpcMap(intent),
                 metadata: {
                     name: "Odoo Crypto Payment",
@@ -238,6 +235,11 @@ function setupWalletConnect(txId, token, projectId) {
             await withTimeout(
                 safeWalletConnectRequest(provider.connect({
                     chains: [intent.chainId],
+                    optionalChains: [intent.chainId],
+                    methods: ["eth_sendTransaction", "personal_sign"],
+                    optionalMethods: ["wallet_switchEthereumChain", "wallet_addEthereumChain"],
+                    events: ["chainChanged", "accountsChanged", "disconnect"],
+                    optionalEvents: ["chainChanged", "accountsChanged", "disconnect"],
                     rpcMap: buildRpcMap(intent),
                 })),
                 20000,
@@ -328,7 +330,7 @@ async function cleanupActiveWalletConnectProvider(provider = activeWalletConnect
         return;
     }
     try {
-        if (typeof provider.disconnect === "function") {
+        if (typeof provider.disconnect === "function" && provider.session) {
             await withTimeout(provider.disconnect(), 1000, "walletconnect_disconnect_timeout");
         }
     } catch (_error) {
@@ -337,17 +339,18 @@ async function cleanupActiveWalletConnectProvider(provider = activeWalletConnect
 }
 
 async function resetWalletConnectSession(provider = activeWalletConnectProvider) {
+    if (walletConnectResetting) {
+        resetWalletConnectButton();
+        return;
+    }
+    walletConnectResetting = true;
     await withTimeout(
         cleanupActiveWalletConnectProvider(provider),
         1500,
         "walletconnect_cleanup_timeout"
     ).catch(() => {});
-    await withTimeout(
-        clearWalletConnectStorage(),
-        1500,
-        "walletconnect_storage_cleanup_timeout"
-    ).catch(() => {});
     resetWalletConnectButton();
+    walletConnectResetting = false;
 }
 
 function buildRpcMap(intent) {
@@ -387,7 +390,7 @@ function bindWalletConnectErrorGuard() {
             event.stopImmediatePropagation();
         }
         setWalletStatus(walletErrorMessage(reason), "text-warning mt-2");
-        resetWalletConnectSession();
+        resetWalletConnectButton();
     };
 
     window.addEventListener("unhandledrejection", (event) => {
@@ -405,54 +408,6 @@ function resetWalletConnectButton() {
     }
     btn.disabled = false;
     btn.textContent = btn.dataset.defaultText || "Pay with WalletConnect";
-}
-
-async function clearWalletConnectStorage() {
-    try {
-        for (const storage of [window.localStorage, window.sessionStorage]) {
-            for (const key of Object.keys(storage || {})) {
-                if (isWalletConnectStorageKey(key)) {
-                    storage.removeItem(key);
-                }
-            }
-        }
-    } catch (_error) {
-        // Storage cleanup is best-effort only.
-    }
-
-    try {
-        if (!window.indexedDB?.databases) {
-            return;
-        }
-        const databases = await window.indexedDB.databases();
-        await Promise.all((databases || []).map((database) => {
-            const name = database?.name || "";
-            if (!isWalletConnectStorageKey(name)) {
-                return Promise.resolve();
-            }
-            return new Promise((resolve) => {
-                const request = window.indexedDB.deleteDatabase(name);
-                request.onsuccess = resolve;
-                request.onerror = resolve;
-                request.onblocked = resolve;
-            });
-        }));
-    } catch (_error) {
-        // IndexedDB cleanup is best-effort only.
-    }
-}
-
-function isWalletConnectStorageKey(key) {
-    const normalized = String(key || "").toLowerCase();
-    return (
-        normalized.includes("walletconnect")
-        || normalized.includes("wallet_connect")
-        || normalized.includes("wc@")
-        || normalized.includes("wc_")
-        || normalized.includes("w3m")
-        || normalized.includes("reown")
-        || normalized.includes("odoo_crypto_checkout")
-    );
 }
 
 function walletErrorMessage(error) {
@@ -502,8 +457,15 @@ function walletErrorType(error) {
         return "connection_timeout";
     }
     if (
-        rawMessage.includes("Cannot read properties of undefined")
-        && (rawMessage.includes("request") || rawMessage.includes("getDefaultChain"))
+        (
+            rawMessage.includes("Cannot read properties of undefined")
+            || rawMessage.includes("undefined is not an object")
+        )
+        && (
+            rawMessage.includes("request")
+            || rawMessage.includes("getDefaultChain")
+            || rawMessage.includes("getProvider")
+        )
     ) {
         return "provider_reset";
     }

@@ -83,6 +83,7 @@ def post_init_hook(env_or_cr, registry=None):
     else:
         env = api.Environment(env_or_cr, SUPERUSER_ID, {})
     _upsert_crypto_assets(env)
+    _deactivate_obsolete_digital_asset_views(env)
 
 
 def _upsert_crypto_assets(env):
@@ -124,3 +125,14 @@ def _upsert_crypto_assets(env):
                 "res_id": currency.id,
                 "noupdate": True,
             })
+
+
+def _deactivate_obsolete_digital_asset_views(env):
+    xmlids = [
+        "crypto_payment_sync.view_account_payment_form_digital_asset_lines",
+        "crypto_payment_sync.view_payment_transaction_form_digital_asset_lines",
+    ]
+    for xmlid in xmlids:
+        view = env.ref(xmlid, raise_if_not_found=False)
+        if view:
+            view.sudo().write({"active": False})

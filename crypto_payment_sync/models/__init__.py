@@ -10,3 +10,4 @@ from . import payment_transaction
 from . import crypto_wallet_address_event
 from . import account_payment
 from . import accounting_support
+from . import account_move_line_traceability
