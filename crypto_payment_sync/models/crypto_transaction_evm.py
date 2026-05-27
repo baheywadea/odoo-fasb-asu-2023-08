@@ -1,16 +1,12 @@
-import requests
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
-import logging
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from eth_utils import to_checksum_address
 from eth_account import Account
 
 Account.enable_unaudited_hdwallet_features()
-
-_logger = logging.getLogger(__name__)
 
 class CryptoTransactionEVM(models.Model):
     _name = "crypto.transaction.evm"
@@ -56,9 +52,46 @@ class CryptoTransactionEVM(models.Model):
 
     blockchain_id = fields.Many2one('crypto.blockchain', related="network_id.blockchain_id", string="Blockchain")
 
+    def _cryptoapis_provider(self):
+        self.ensure_one()
+        provider = self.wallet_id.payment_provider_id or self.env['payment.provider'].search([('code', '=', 'crypto')], limit=1)
+        if not provider:
+            raise UserError(_("Configure the Crypto payment provider before calling Crypto APIs."))
+        provider._cryptoapis_headers()
+        return provider
+
+    def _cryptoapis_path_parts(self):
+        self.ensure_one()
+        if self.wallet_id:
+            return self.wallet_id._cryptoapis_path_parts()
+        blockchain = self.blockchain_id.cryptoapis_slug or self.blockchain_id.technical_name or self.blockchain_id.name
+        network = self.network_id.cryptoapis_network or self.network_id.technical_name or self.network_id.name
+        blockchain = (blockchain or "").lower().strip()
+        network = (network or "").lower().strip()
+        if not blockchain or not network:
+            raise UserError(_("Set Crypto APIs blockchain and network codes before calling Crypto APIs."))
+        if self.network_id.is_evm_compatible or "ether" in blockchain or blockchain in ("ethereum", "polygon", "base"):
+            family = "evm"
+        elif "bitcoin" in blockchain:
+            family = "utxo"
+        else:
+            family = None
+        return family, blockchain, network
+
+    def _cryptoapis_family_path(self, prefix, suffix):
+        self.ensure_one()
+        family, blockchain, network = self._cryptoapis_path_parts()
+        family_prefix = "%s/" % family if family else ""
+        return f"{prefix}/{family_prefix}{blockchain}/{network}/{suffix.lstrip('/')}"
+
     @api.model
     def create_from_json(self, data):
         """Create a TRX transaction record from a JSON response"""
+        fee = data.get('fee') or {}
+        value = data.get('value') or {}
+        gas_price = data.get('gasPrice') or {}
+        mined = data.get('minedInBlock') or {}
+        blockchain_specific = data.get('blockchainSpecific') or {}
         return self.create({
             'contract': data.get('contract'),
             'tx_hash': data.get('hash'),
@@ -68,63 +101,49 @@ class CryptoTransactionEVM(models.Model):
             'sender': data.get('sender'),
             'status': data.get('status'),
             'timestamp': datetime.utcfromtimestamp(data.get('timestamp')) if data.get('timestamp') else False,
-
-            'fee_amount': float(data['fee']['amount']) if data.get('fee') else 0.0,
-            'fee_unit': data['fee']['unit'] if data.get('fee') else '',
-
-            'value_amount': float(data['value']['amount']) if data.get('value') else 0.0,
-            'value_unit': data['value']['unit'] if data.get('value') else '',
-
+            'fee_amount': float(fee.get('amount') or 0),
+            'fee_unit': fee.get('unit') or '',
+            'value_amount': float(value.get('amount') or 0),
+            'value_unit': value.get('unit') or '',
             'gas_limit': data.get('gasLimit'),
             'gas_used': data.get('gasUsed'),
-
-            'gas_price_amount': data['gasPrice']['amount'] if data.get('gasPrice') else '',
-            'gas_price_unit': data['gasPrice']['unit'] if data.get('gasPrice') else '',
-
-            'block_hash': data['minedInBlock']['hash'] if data.get('minedInBlock') else '',
-            'block_height': data['minedInBlock']['height'] if data.get('minedInBlock') else '',
-
-            'bandwidth_used': data['blockchainSpecific']['bandwidthUsed'] if data.get('blockchainSpecific') else 0,
-            'energy_used': float(data['blockchainSpecific']['energyUsed']) if data.get(
-                'blockchainSpecific') else 0.0,
+            'gas_price_amount': gas_price.get('amount') or '',
+            'gas_price_unit': gas_price.get('unit') or '',
+            'block_hash': mined.get('hash') or '',
+            'block_height': mined.get('height') or 0,
+            'bandwidth_used': blockchain_specific.get('bandwidthUsed') or 0,
+            'energy_used': float(blockchain_specific.get('energyUsed') or 0),
         })
 
     @api.model
     def create_from_wallet_json(self, data):
         """Create a TRX transaction record from a JSON response"""
+        recipients = data.get('recipient') or []
+        senders = data.get('sender') or []
+        first_recipient = recipients[0] if recipients else {}
+        first_sender = senders[0] if senders else {}
+        fee = data.get('fee') or {}
+        mined = data.get('minedInBlock') or {}
         return self.create({
-            # 'contract': data.get('contract'),
             'tx_hash': data.get('hash'),
             'input_data': data.get('inputData'),
             'position_in_block': data.get('positionInBlock'),
-            'recipient': data['recipient'][0]['address'],
-            'sender': data['sender'][0]['address'],
-            # 'status': data.get('status'),
+            'recipient': first_recipient.get('address') or '',
+            'sender': first_sender.get('address') or '',
             'timestamp': datetime.utcfromtimestamp(data.get('timestamp')) if data.get('timestamp') else False,
-
-            'fee_amount': float(data['fee']['amount']) if data.get('fee') else 0.0,
-            # 'fee_unit': data['fee']['unit'] if data.get('fee') else '',
-
-            'value_amount': float(data['recipient'][0]['amount']) if data.get('recipient') else 0.0,
-            # 'value_unit': data['value']['unit'] if data.get('value') else '',
-
-            # 'gas_limit': data.get('gasLimit'),
-            # 'gas_used': data.get('gasUsed'),
-
-            # 'gas_price_amount': data['gasPrice']['amount'] if data.get('gasPrice') else '',
-            # 'gas_price_unit': data['gasPrice']['unit'] if data.get('gasPrice') else '',
-
-            'block_hash': data['minedInBlock']['hash'] if data.get('minedInBlock') else '',
-            'block_height': data['minedInBlock']['height'] if data.get('minedInBlock') else '',
-
-            # 'bandwidth_used': data['blockchainSpecific']['bandwidthUsed'] if data.get('blockchainSpecific') else 0,
-            # 'energy_used': float(data['blockchainSpecific']['energyUsed']) if data.get(
-            #     'blockchainSpecific') else 0.0,
+            'fee_amount': float(fee.get('amount') or 0),
+            'value_amount': float(first_recipient.get('amount') or 0),
+            'block_hash': mined.get('hash') or '',
+            'block_height': mined.get('height') or 0,
         })
 
     @api.model
     def return_from_json(self, data):
         """Create a TRX transaction record from a JSON response"""
+        fee = data.get('fee') or {}
+        value = data.get('value') or {}
+        gas_price = data.get('gasPrice') or {}
+        mined = data.get('minedInBlock') or {}
         return {
             'contract': data.get('contract'),
             'tx_hash': data.get('hash'),
@@ -134,25 +153,16 @@ class CryptoTransactionEVM(models.Model):
             'sender': data.get('sender'),
             'status': data.get('status'),
             'timestamp': datetime.utcfromtimestamp(data.get('timestamp')) if data.get('timestamp') else False,
-
-            'fee_amount': float(data['fee']['amount']) if data.get('fee') else 0.0,
-            'fee_unit': data['fee']['unit'] if data.get('fee') else '',
-
-            'value_amount': float(data['value']['amount']) if data.get('value') else 0.0,
-            'value_unit': data['value']['unit'] if data.get('value') else '',
-
+            'fee_amount': float(fee.get('amount') or 0),
+            'fee_unit': fee.get('unit') or '',
+            'value_amount': float(value.get('amount') or 0),
+            'value_unit': value.get('unit') or '',
             'gas_limit': data.get('gasLimit'),
             'gas_used': data.get('gasUsed'),
-
-            'gas_price_amount': data['gasPrice']['amount'] if data.get('gasPrice') else '',
-            'gas_price_unit': data['gasPrice']['unit'] if data.get('gasPrice') else '',
-
-            'block_hash': data['minedInBlock']['hash'] if data.get('minedInBlock') else '',
-            'block_height': data['minedInBlock']['height'] if data.get('minedInBlock') else '',
-
-            # 'bandwidth_used': data['blockchainSpecific']['bandwidthUsed'] if data.get('blockchainSpecific') else 0,
-            # 'energy_used': float(data['blockchainSpecific']['energyUsed']) if data.get(
-            #     'blockchainSpecific') else 0.0,
+            'gas_price_amount': gas_price.get('amount') or '',
+            'gas_price_unit': gas_price.get('unit') or '',
+            'block_hash': mined.get('hash') or '',
+            'block_height': mined.get('height') or 0,
         }
 
 
@@ -162,49 +172,19 @@ class CryptoTransactionEVM(models.Model):
 
             # Check if more than one minute
             if record.tx_hash:
-                blockchain = record.blockchain_id.name.lower()
-                network = record.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ",
-                                                                                                                "")
                 transactionHash = record.tx_hash
-                if 'ether' in blockchain:
-                    url = f"https://rest.cryptoapis.io/transactions/evm/{blockchain}/{network}/{transactionHash}?context=OdooGetTransactionDetails"
-                if 'bitcoin' in blockchain:
-                    url = f"https://rest.cryptoapis.io/transactions/utxo/{blockchain}/{network}/{transactionHash}?context=OdooGetTransactionDetails"
-                if 'xrp' in blockchain:
-                    url = f"https://rest.cryptoapis.io/transactions/{blockchain}/{network}/{transactionHash}?context=OdooGetTransactionDetails"
-                provider = self.env['payment.provider'].search([('code', '=', 'crypto')])[0]
-                headers = {
-                    "X-API-Key": provider.cryptoapis_api_key
-                }
-                response = requests.get(url, headers=headers)
-                if response.status_code != 200:
-                    raise UserError((f"Failed to fetch crypto currencies: {response.text}"))
-                _logger.info('response' + str(response))
-                data = response.json().get("data", [])
-                _logger.info('response Json Data' + str(data))
-                item = data.get("item", [])
-                _logger.info('response Json Item' + str(item))
+                provider = record._cryptoapis_provider()
+                data = provider._cryptoapis_get(
+                    record._cryptoapis_family_path("transactions", transactionHash),
+                    params={"context": "OdooGetTransactionDetails"},
+                ).get("data") or {}
+                item = data.get("item") or {}
                 updated_data = self.return_from_json(item)
                 record.write(updated_data)
 
     def prepare_native_tx(self):
         for record in self:
-            blockchain = record.blockchain_id.name.lower()
-            network = record.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ","")
-            extendedPublicKey =record.wallet_id.xpub
-            if 'ether' in blockchain:
-                # url = f"https://rest.cryptoapis.io/prepare-transactions/evm/{blockchain}/{network}/native-coins"
-                url = f"https://rest.cryptoapis.io/hd-wallets/evm/{blockchain}/{network}/{extendedPublicKey}/transactions/prepare"
-            if 'bitcoin' in blockchain:
-                # url = f"https://rest.cryptoapis.io/prepare-transactions/utxo/{blockchain}/{network}/native-coins"
-                url = f"https://rest.cryptoapis.io/hd-wallets/utxo/{blockchain}/{network}/{extendedPublicKey}/transactions/prepare"
-            if 'xrp' in blockchain:
-                # url = f"https://rest.cryptoapis.io/prepare-transactions/{blockchain}/{network}/native-coins"
-                url = f"https://rest.cryptoapis.io/hd-wallets/{blockchain}/{network}/{extendedPublicKey}/transactions/prepare"
-            provider = self.env['payment.provider'].search([('code', '=', 'crypto')])[0]
-            headers = {
-                "X-API-Key": provider.cryptoapis_api_key
-            }
+            provider = record._cryptoapis_provider()
             from decimal import Decimal
 
             amount_eth = Decimal(str(record.value_amount))
@@ -225,50 +205,38 @@ class CryptoTransactionEVM(models.Model):
             if record.input_data is not None:
                 payload["data"]["item"]["nonce"] = str(0)
 
-            response = requests.post(url, json=payload, headers=headers, timeout=30)
-            if response.status_code != 200:
-                raise UserError(f"Failed to fetch crypto currencies: {response.text}")
-            # response.raise_for_status()
-            return response.json()["data"]["item"]
+            return provider._cryptoapis_post(
+                record.wallet_id._cryptoapis_hd_wallet_path("transactions/prepare"),
+                payload=payload,
+            )["data"]["item"]
 
     def broadcast_signed_tx(self,signed_tx_hex):
         for record in self:
-            blockchain = record.blockchain_id.name.lower()
-
-            network = record.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ","")
-            if 'ether' in blockchain:
-                url = f"https://rest.cryptoapis.io/broadcast-transactions/{blockchain}/{network}"
-            if 'bitcoin' in blockchain:
-                url = f"https://rest.cryptoapis.io/broadcast-transactions/{blockchain}/{network}"
-            if 'xrp' in blockchain:
-                url = f"https://rest.cryptoapis.io/broadcast-transactions/{blockchain}/{network}"
-            provider = self.env['payment.provider'].search([('code', '=', 'crypto')])[0]
-            headers = {
-                "X-API-Key": provider.cryptoapis_api_key
-            }
+            provider = record._cryptoapis_provider()
+            _family, blockchain, network = record._cryptoapis_path_parts()
             payload = {
                 "context": "odoo_broadcast",
                 "data": {"item": {"signedTransactionHex": signed_tx_hex}}
             }
-            response = requests.post(url, json=payload, headers=headers, timeout=30)
-            if response.status_code != 200:
-                raise UserError(f"Failed to fetch crypto currencies: {response.text}")
-            response.raise_for_status()
-            tx_id = response.json()["data"]["item"]["transactionId"]
+            response_data = provider._cryptoapis_post(
+                f"broadcast-transactions/{blockchain}/{network}",
+                payload=payload,
+            )
+            tx_id = response_data["data"]["item"]["transactionId"]
             record.write({'tx_hash':tx_id})
-            return response.json()["data"]["item"]["transactionId"]
+            return tx_id
 
     def sign_transaction(self, tx, private_key):
         # private_key bytes -> hex
         if isinstance(private_key, bytes):
             private_key = private_key.hex()
 
-        # ✅ checksum address
+        # Normalize recipient address format.
         if tx.get("to"):
             # tx["to"] = Web3.to_checksum_address(tx["to"])
             tx["to"] = to_checksum_address(tx["to"])
 
-        # ✅ normalize required fields types
+        # Normalize required field types.
         if "value" in tx:
             tx["value"] = int(tx["value"])
         if "chainId" in tx:
@@ -278,13 +246,13 @@ class CryptoTransactionEVM(models.Model):
         if "gas" in tx:
             tx["gas"] = int(tx["gas"])
 
-        # ✅ data must be hex string
+        # Data must be a hex string.
         if not tx.get("data"):
             tx["data"] = "0x"
         elif isinstance(tx["data"], str) and not tx["data"].startswith("0x"):
             tx["data"] = "0x" + tx["data"]
 
-        # ✅ fees must be int
+        # Fees must be integers.
         if tx.get("gasPrice") is not None:
             tx["gasPrice"] = int(tx["gasPrice"])
         if tx.get("maxFeePerGas") is not None:
@@ -298,7 +266,7 @@ class CryptoTransactionEVM(models.Model):
             raise UserError(f"Transaction signing failed: {str(e)}")
 
     def send_native_from_odoo(self):
-        # 1) nonce (اختياري لكن مفيد)
+        # Prepare and sign only when the caller has explicitly enabled broadcast.
         for record in self:
 
             # 2) prepare

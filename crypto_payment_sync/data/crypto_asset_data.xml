@@ -1,0 +1,91 @@
+<odoo>
+    <data noupdate="1">
+        <record id="crypto_asset_btc" model="res.currency">
+            <field name="name">BTC</field>
+            <field name="full_name">Bitcoin</field>
+            <field name="symbol">BTC</field>
+            <field name="currency_unit_label">BTC</field>
+            <field name="currency_subunit_label">satoshi</field>
+            <field name="rounding">0.00000001</field>
+            <field name="type">crypto</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="crypto_asset_eth" model="res.currency">
+            <field name="name">ETH</field>
+            <field name="full_name">Ether</field>
+            <field name="symbol">ETH</field>
+            <field name="currency_unit_label">ETH</field>
+            <field name="currency_subunit_label">wei</field>
+            <field name="rounding">0.00000001</field>
+            <field name="type">crypto</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="crypto_asset_usdt" model="res.currency">
+            <field name="name">USDT</field>
+            <field name="full_name">Tether USD</field>
+            <field name="symbol">USDT</field>
+            <field name="currency_unit_label">USDT</field>
+            <field name="currency_subunit_label">USDT</field>
+            <field name="rounding">0.000001</field>
+            <field name="type">crypto</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="crypto_asset_usdc" model="res.currency">
+            <field name="name">USDC</field>
+            <field name="full_name">USD Coin</field>
+            <field name="symbol">USDC</field>
+            <field name="currency_unit_label">USDC</field>
+            <field name="currency_subunit_label">USDC</field>
+            <field name="rounding">0.000001</field>
+            <field name="type">crypto</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="crypto_asset_bnb" model="res.currency">
+            <field name="name">BNB</field>
+            <field name="full_name">BNB</field>
+            <field name="symbol">BNB</field>
+            <field name="currency_unit_label">BNB</field>
+            <field name="currency_subunit_label">BNB</field>
+            <field name="rounding">0.00000001</field>
+            <field name="type">crypto</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="crypto_asset_sol" model="res.currency">
+            <field name="name">SOL</field>
+            <field name="full_name">Solana</field>
+            <field name="symbol">SOL</field>
+            <field name="currency_unit_label">SOL</field>
+            <field name="currency_subunit_label">lamport</field>
+            <field name="rounding">0.000000001</field>
+            <field name="type">crypto</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="crypto_asset_matic" model="res.currency">
+            <field name="name">MATIC</field>
+            <field name="full_name">Polygon</field>
+            <field name="symbol">MATIC</field>
+            <field name="currency_unit_label">MATIC</field>
+            <field name="currency_subunit_label">MATIC</field>
+            <field name="rounding">0.00000001</field>
+            <field name="type">crypto</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="crypto_asset_avax" model="res.currency">
+            <field name="name">AVAX</field>
+            <field name="full_name">Avalanche</field>
+            <field name="symbol">AVAX</field>
+            <field name="currency_unit_label">AVAX</field>
+            <field name="currency_subunit_label">AVAX</field>
+            <field name="rounding">0.00000001</field>
+            <field name="type">crypto</field>
+            <field name="active">True</field>
+        </record>
+    </data>
+</odoo>

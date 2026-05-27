@@ -12,17 +12,18 @@
     <template id="crypto_payment_qr_page" name="Crypto Payment QR Page">
         <t t-call="website.layout">
             <script>
-                // ✅ Minimal process polyfill for WalletConnect
+                // Minimal process polyfill for WalletConnect
                 window.process = window.process || {
                 env: {
                 NODE_ENV: "production"
                 }
                 };
             </script>
-            <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.17.0/dist/index.umd.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
-            <div id="wrap" class="o_appointment_index" t-att-data-tx-id="tx.id" t-att-data-token="token">
+            <div id="wrap"
+                 class="o_appointment_index"
+                 t-att-data-tx-id="tx.id"
+                 t-att-data-token="token"
+                 t-att-data-walletconnect-project-id="walletconnect_project_id">
                 <div class="row justify-content-center">
                     <div class="col-lg-6">
                         <div class="card shadow-sm">
@@ -36,56 +37,41 @@
                                 </div>
 
                                 <div class="text-center mb-3">
-                                    <div id="wc_qr_box" style="display:none; margin: 0 auto; width:280px; height:280px;"></div>
                                     <div id="wc_qr_hint" class="text-muted">
-                                        Click “Connect Wallet” to generate WalletConnect QR.
+                                        Use WalletConnect to pay from a compatible mobile or browser wallet.
                                     </div>
+                                    <div id="wc_status" class="text-muted mt-2"></div>
                                 </div>
 
                                 <div class="d-grid gap-2 mt-3">
                                     <button id="wc_connect_btn" type="button" class="btn btn-primary btn-lg w-100">
-                                        Connect Wallet (WalletConnect)
+                                        Pay with WalletConnect
                                     </button>
-                                </div>
-
-                                <div class="text-center mb-3">
-                                    <img t-att-src="'/crypto/qr/%s.png?token=%s' % (tx.id, token)"
-                                         alt="Payment QR"
-                                         style="max-width: 280px; width: 100%; height: auto;"/>
-                                </div>
-
-                                <div class="mb-2">
-                                    <small class="text-muted">Send to address</small>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <code class="flex-grow-1" style="word-break: break-all;"
-                                              t-esc="tx.crypto_address.name"/>
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                                t-att-data-copy="tx.crypto_address.name">Copy
-                                        </button>
-                                    </div>
                                 </div>
 
                                 <div class="mb-3">
                                     <small class="text-muted">Amount</small>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <code class="flex-grow-1" t-esc="tx.crypto_amount_eth"/>
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                                t-att-data-copy="str(tx.crypto_amount_eth)">Copy
-                                        </button>
+                                    <div>
+                                        <code t-esc="tx.crypto_amount_eth"/>
                                     </div>
                                 </div>
 
-                                <t t-set="wei_value" t-value="int(round(tx.crypto_amount_eth * 1000000000000000000))"/>
-                                <t t-set="chain_id" t-value="tx.crypto_address.wallet_id.network_id.chain_id"/>
-                                <t t-set="pay_uri"
-                                   t-value="'ethereum:%s?value=%s&amp;chainId=%s' % (tx.crypto_address.name, wei_value, chain_id)"/>
-
-
-                                <div class="d-grid gap-2 mt-3">
-                                    <a t-att-href="pay_uri"
-                                       class="btn btn-primary btn-lg w-100">
-                                        Pay
-                                    </a>
+                                <div class="mb-3">
+                                    <small class="text-muted">Manual transfer address</small>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <code class="flex-grow-1 p-2 bg-light rounded" style="word-break: break-all;"
+                                              t-esc="tx.crypto_address.name"/>
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                type="button"
+                                                t-att-data-copy="tx.crypto_address.name">
+                                            Copy
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">
+                                        Send only on
+                                        <b t-esc="network_label"/>
+                                        to this address.
+                                    </small>
                                 </div>
 
                                 <div id="crypto_status_box" class="alert alert-info mb-0">

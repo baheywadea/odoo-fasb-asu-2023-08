@@ -1,0 +1,2 @@
+readiness_id,transaction_datetime,asset_symbol,quantity,gross_proceeds_support,wallet_source_reference,transaction_hash,cost_basis_support,status,missing_data_notes
+1099DA-DEMO-0001,2026-03-10T19:35:00Z,BTC,0.01000000,520.00,Demo Treasury Wallet,demo-utxo-tx-0001,420.00,needs_review,Fake readiness row; final reportability requires tax review

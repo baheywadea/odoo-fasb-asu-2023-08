@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import requests
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from io import BytesIO
+from urllib.parse import urlparse
 
 from odoo import http
 from odoo.http import request
@@ -33,6 +35,15 @@ def _eth_to_wei(amount_eth):
     return int(wei)
 
 
+def _decimal_or_none(value):
+    try:
+        if value in (None, ""):
+            return None
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError):
+        return None
+
+
 class CryptoPaymentController(http.Controller):
 
     def _get_tx_or_404(self, tx_id, token):
@@ -54,6 +65,9 @@ class CryptoPaymentController(http.Controller):
             "tx": tx,
             "token": token,
             "network_label": (tx.crypto_address.wallet_id.network_id.name or "").upper() or "ETH",
+            "walletconnect_project_id": tx.provider_id.walletconnect_project_id
+            or request.env["ir.config_parameter"].sudo().get_param("crypto_payment_sync.walletconnect_project_id")
+            or "",
         }
         return request.render("crypto_payment_sync.crypto_payment_qr_page", values)
 
@@ -70,9 +84,8 @@ class CryptoPaymentController(http.Controller):
         if not address:
             return request.make_response("missing address", [("Content-Type", "text/plain")], 400)
 
-        # Build Ethereum payment URI (EIP-681 style: value in WEI)
-        wei = _eth_to_wei(tx.crypto_amount_eth or 0.0)
-        uri = f"ethereum:{address}?value={wei}"
+        # Manual fallback QR: encode the address only so scanner apps do not force a MetaMask/EIP-681 deep link.
+        uri = address
 
         qr = qrcode.QRCode(box_size=8, border=2)
         qr.add_data(uri)
@@ -97,11 +110,22 @@ class CryptoPaymentController(http.Controller):
         if not tx:
             return {"ok": False, "error": "not_found"}
 
+        confirmation_status = "waiting"
+        message = "Waiting for payment confirmation..."
+        if getattr(tx, "crypto_tx_hash", False) and tx.state not in ("done", "authorized"):
+            confirmation_status, message = self._confirm_walletconnect_receipt(tx)
+
         paid = tx.state in ("done", "authorized")  # adjust to your flow
+        if paid:
+            confirmation_status = "confirmed"
+            message = "Payment confirmed. Redirecting..."
         return {
             "ok": True,
             "paid": paid,
             "state": tx.state,
+            "tx_hash": getattr(tx, "crypto_tx_hash", None),
+            "confirmation_status": confirmation_status,
+            "message": message,
             "received": getattr(tx, "crypto_received_amount", None),
         }
 
@@ -124,14 +148,8 @@ class CryptoPaymentController(http.Controller):
         if not tx.exists():
             return _resp("tx not found", 404)
 
-        data = payload.get("data") or {}
-        item = data.get("item") or {}
-
-        # defensive nesting: data.item.item
-        if isinstance(item.get("item"), dict):
-            item = item["item"]
-
-        _logger.info("Parsed item payload: %s", item)
+        item = self._cryptoapis_callback_item(payload)
+        _logger.info("Parsed CryptoAPIs callback tx_id=%s", tx_id)
 
         incoming_blockchain = (item.get("blockchain") or "").lower().strip()
         incoming_network = (item.get("network") or "").lower().strip()
@@ -167,9 +185,114 @@ class CryptoPaymentController(http.Controller):
         if unit and unit != "ETH":
             return _resp("unit mismatch", 400)
 
-        # mark done
+        self._mark_crypto_tx_done(tx, tx_hash)
+
+        return _resp("ok", 200)
+
+    @http.route("/invoice_link/crypto/callback/address/<int:address_id>", type="http",
+                auth="public", csrf=False, methods=["GET", "POST"])
+    def crypto_address_callback(self, address_id, **kwargs):
+        if request.httprequest.method == "GET":
+            return _resp("ok", 200)
+
+        raw = request.httprequest.get_data(as_text=True) or ""
+        _logger.info("CryptoAPIs shared-address callback address_id=%s", address_id)
+
+        try:
+            payload = json.loads(raw)
+        except Exception:
+            return _resp("bad json", 400)
+
+        address = request.env["crypto.wallet.address"].sudo().browse(address_id)
+        if not address.exists():
+            return _resp("address not found", 404)
+
+        item = self._cryptoapis_callback_item(payload)
+        if not self._cryptoapis_callback_matches_address(item, address):
+            return _resp("address mismatch", 400)
+
+        tx_hash = (item.get("transactionId") or item.get("hash") or "").strip()
+        if not tx_hash:
+            return _resp("missing transactionId", 400)
+
+        tx = self._match_shared_address_payment(address, item, tx_hash)
+        if not tx:
+            _logger.warning(
+                "No unambiguous payment transaction matched shared address callback address_id=%s tx_hash=%s",
+                address.id,
+                tx_hash,
+            )
+            return _resp("payment needs review", 202)
+
+        self._mark_crypto_tx_done(tx, tx_hash)
+        return _resp("ok", 200)
+
+    def _cryptoapis_callback_item(self, payload):
+        data = payload.get("data") or {}
+        item = data.get("item") or {}
+        if isinstance(item.get("item"), dict):
+            item = item["item"]
+        return item
+
+    def _cryptoapis_callback_matches_address(self, item, address):
+        incoming_address = (item.get("address") or "").lower().strip()
+        if incoming_address and incoming_address != (address.name or "").lower().strip():
+            return False
+
+        incoming_blockchain = (item.get("blockchain") or "").lower().strip()
+        incoming_network = (item.get("network") or "").lower().strip()
+        expected_blockchain = (address.wallet_id.blockchain_id.name or "").lower().strip()
+        expected_network = (address.wallet_id.network_id.name or "").lower().strip()
+        expected_network = expected_network.replace(" testnet", "").replace("testnet", "").strip()
+
+        if incoming_blockchain and expected_blockchain and incoming_blockchain != expected_blockchain:
+            return False
+        if incoming_network and expected_network and incoming_network != expected_network:
+            return False
+
+        direction = (item.get("direction") or "").lower().strip()
+        if direction and direction != "incoming":
+            return False
+
+        return True
+
+    def _callback_amount(self, item):
+        for key in ("amount", "value"):
+            amount = _decimal_or_none(item.get(key))
+            if amount is not None:
+                return amount
+        amount_data = item.get("amount") if isinstance(item.get("amount"), dict) else {}
+        return _decimal_or_none(amount_data.get("amount") or amount_data.get("value"))
+
+    def _match_shared_address_payment(self, address, item, tx_hash):
+        Tx = request.env["payment.transaction"].sudo()
+        tx = Tx.search([
+            ("crypto_address", "=", address.id),
+            ("crypto_tx_hash", "=", tx_hash),
+            ("state", "in", ("draft", "pending", "authorized")),
+        ], limit=1)
+        if tx:
+            return tx
+
+        incoming_amount = self._callback_amount(item)
+        if incoming_amount is None:
+            return Tx.browse()
+
+        candidates = Tx.search([
+            ("crypto_address", "=", address.id),
+            ("state", "in", ("draft", "pending", "authorized")),
+        ])
+        matched = candidates.filtered(
+            lambda record: _decimal_or_none(record.crypto_amount_eth) == incoming_amount
+        )
+        return matched[:1] if len(matched) == 1 else Tx.browse()
+
+    def _mark_crypto_tx_done(self, tx, tx_hash):
+        vals = {}
         if hasattr(tx, "crypto_tx_hash"):
-            tx.sudo().write({"crypto_tx_hash": tx_hash})
+            vals["crypto_tx_hash"] = tx_hash
+        if vals:
+            tx.sudo().write(vals)
 
         if tx.state not in ("done", "authorized"):
             try:
@@ -177,7 +300,91 @@ class CryptoPaymentController(http.Controller):
             except Exception:
                 tx.sudo().write({"state": "done"})
 
-        return _resp("ok", 200)
+    def _confirm_walletconnect_receipt(self, tx):
+        tx_hash = (getattr(tx, "crypto_tx_hash", "") or "").strip()
+        if not tx_hash:
+            return "waiting", "Waiting for payment confirmation..."
+
+        network = tx.crypto_address.wallet_id.network_id
+        rpc_url = self._network_rpc_url(network)
+        if not rpc_url:
+            return "waiting", "Transaction sent. Waiting for webhook confirmation..."
+
+        receipt = self._evm_rpc(rpc_url, "eth_getTransactionReceipt", [tx_hash])
+        if not receipt:
+            return "pending", "Transaction sent. Waiting for blockchain confirmation..."
+
+        status = receipt.get("status")
+        if status and status.lower() == "0x0":
+            return "failed", "The blockchain transaction failed. Please contact support before trying again."
+        if not receipt.get("blockNumber"):
+            return "pending", "Transaction sent. Waiting for blockchain confirmation..."
+
+        tx_data = self._evm_rpc(rpc_url, "eth_getTransactionByHash", [tx_hash])
+        if not tx_data:
+            return "pending", "Transaction sent. Waiting for blockchain confirmation..."
+
+        expected_to = (tx.crypto_address.name or "").lower()
+        actual_to = (tx_data.get("to") or "").lower()
+        if expected_to and actual_to and expected_to != actual_to:
+            return "mismatch", "The sent transaction does not match this payment address. Please contact support."
+
+        expected_value = _eth_to_wei(tx.crypto_amount_eth)
+        try:
+            actual_value = int(tx_data.get("value") or "0x0", 16)
+        except (TypeError, ValueError):
+            actual_value = 0
+        if actual_value < expected_value:
+            return "mismatch", "The sent transaction amount is lower than the expected payment amount. Please contact support."
+
+        self._mark_crypto_tx_done(tx, tx_hash)
+        return "confirmed", "Payment confirmed. Redirecting..."
+
+    def _network_rpc_url(self, network):
+        rpc_url = (network.rpc_url or "").strip()
+        if self._is_usable_rpc_url(rpc_url):
+            return rpc_url
+        defaults = {
+            1: "https://ethereum.publicnode.com",
+            10: "https://mainnet.optimism.io",
+            56: "https://bsc-dataseed.binance.org",
+            137: "https://polygon-rpc.com",
+            8453: "https://mainnet.base.org",
+            42161: "https://arb1.arbitrum.io/rpc",
+            43114: "https://api.avax.network/ext/bc/C/rpc",
+            11155111: "https://ethereum-sepolia.publicnode.com",
+        }
+        return defaults.get(int(network.chain_id or 0), "")
+
+    def _is_usable_rpc_url(self, rpc_url):
+        if not rpc_url or "YOUR_PROJECT_ID" in rpc_url or rpc_url == "read-only-provider":
+            return False
+        parsed = urlparse(rpc_url)
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+    def _evm_rpc(self, rpc_url, method, params):
+        if not self._is_usable_rpc_url(rpc_url):
+            return None
+        try:
+            response = requests.post(
+                rpc_url,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": method,
+                    "params": params,
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except Exception as exc:
+            _logger.info("Read-only EVM RPC check failed for %s: %s", method, exc)
+            return None
+        if payload.get("error"):
+            _logger.info("Read-only EVM RPC returned an error for %s", method)
+            return None
+        return payload.get("result")
 
     @http.route("/crypto/intent/<int:tx_id>", type="jsonrpc", auth="public", csrf=False, methods=["POST"])
     def crypto_intent(self, tx_id, token=None, **kw):
@@ -189,7 +396,9 @@ class CryptoPaymentController(http.Controller):
         if not address:
             return {"ok": False, "error": "missing_address"}
 
-        chain_id = int(tx.crypto_address.wallet_id.network_id.chain_id or 1)
+        network = tx.crypto_address.wallet_id.network_id
+        chain_id = int(network.chain_id or 1)
+        rpc_url = (network.rpc_url or "").strip()
 
         # IMPORTANT: compute wei safely (no float issues)
         from decimal import Decimal, ROUND_HALF_UP
@@ -201,6 +410,7 @@ class CryptoPaymentController(http.Controller):
             "chainId": chain_id,
             "to": address,
             "valueWei": str(int(wei)),
+            "rpcUrl": rpc_url if rpc_url and "YOUR_PROJECT_ID" not in rpc_url and rpc_url != "read-only-provider" else "",
         }
 
     @http.route("/crypto/wc_tx/<int:tx_id>", type="jsonrpc", auth="public", csrf=False, methods=["POST"])

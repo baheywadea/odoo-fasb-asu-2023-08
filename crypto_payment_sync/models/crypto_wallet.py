@@ -1,12 +1,10 @@
-import requests
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 import logging
 import time
 from datetime import datetime, timedelta
 from mnemonic import Mnemonic
 from bip32 import BIP32
-import hashlib
 
 _logger = logging.getLogger(__name__)
 
@@ -33,9 +31,44 @@ class CryptoWallet(models.Model):
     is_default = fields.Boolean(string="Is Default",
                                 help="Use this wallet for receiving payments for the selected currency.")
 
+    checkout_address_mode = fields.Selection(
+        [
+            ('unique_per_payment', 'Unique Address per Payment'),
+            ('default_wallet_address', 'Default Wallet Address'),
+        ],
+        string="Checkout Address Mode",
+        default='unique_per_payment',
+        required=True,
+        help=(
+            "Unique Address per Payment gives each checkout its own receiving address. "
+            "Default Wallet Address receives multiple payments on the selected address and relies on "
+            "transaction hash, amount, and review checks for matching."
+        ),
+    )
+
+    default_checkout_address_id = fields.Many2one(
+        'crypto.wallet.address',
+        string="Default Checkout Address",
+        domain="[('wallet_id', '=', id)]",
+        help="Receiving address used when Checkout Address Mode is Default Wallet Address.",
+    )
+
     xpub = fields.Char(string="XPUB (if HD wallet)")
 
-    mnemonic = fields.Char(string="Mnemonic Seed (Encrypted)")  # Store the seed securely!
+    mnemonic = fields.Char(
+        string="Sensitive Mnemonic Seed",
+        copy=False,
+        groups="crypto_payment_sync.group_crypto_admin",
+        help=(
+            "Sensitive seed phrase retained only for legacy/test workflows. "
+            "Production workflows should use read-only XPUB/address ingestion and should not store seed phrases."
+        ),
+    )
+
+    mnemonic_present = fields.Boolean(
+        string="Mnemonic Stored",
+        compute="_compute_mnemonic_present",
+    )
 
     active = fields.Boolean(default=True)
 
@@ -63,10 +96,80 @@ class CryptoWallet(models.Model):
         ('xpub_uniq', 'unique (xpub)', 'The xpub Key must be unique!')
     ]
 
-    @api.depends('transaction_evm_ids')
-    def _compute_transactions_evm_count(self):
+    @api.constrains('default_checkout_address_id', 'checkout_address_mode')
+    def _check_default_checkout_address(self):
         for record in self:
-            record['transactions_evm_count'] = len(record.transaction_evm_ids)
+            if (
+                record.default_checkout_address_id
+                and record.default_checkout_address_id.wallet_id != record
+            ):
+                raise ValidationError(_("The default checkout address must belong to this wallet."))
+
+    @api.depends('mnemonic')
+    def _compute_mnemonic_present(self):
+        for record in self:
+            record.mnemonic_present = bool(record.mnemonic)
+
+    def action_clear_mnemonic(self):
+        if not self.env.user.has_group("crypto_payment_sync.group_crypto_admin"):
+            raise AccessError(_("Only Crypto Accounting Managers can clear stored mnemonic values."))
+        for record in self:
+            if record.mnemonic:
+                record.mnemonic = False
+                _logger.warning("Stored mnemonic cleared for crypto wallet id=%s", record.id)
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Mnemonic Cleared"),
+                "message": _("The stored mnemonic value was cleared from this wallet."),
+                "type": "success",
+                "sticky": False,
+            },
+        }
+
+    def _get_default_checkout_address(self):
+        self.ensure_one()
+        address = self.default_checkout_address_id or self.wallet_address_ids[:1]
+        if address:
+            return address
+
+        self.derive_new_addresses()
+        address = self.default_checkout_address_id or self.wallet_address_ids[:1]
+        if not address:
+            raise UserError(_(
+                "No default checkout address is available for %(wallet)s. Sync or derive wallet addresses first.",
+                wallet=self.display_name,
+            ))
+        return address
+
+    def _compute_transactions_evm_count(self):
+        TxEvm = self.env['crypto.transaction.evm']
+        for record in self:
+            record.transactions_evm_count = TxEvm.search_count(record._get_wallet_transaction_domain())
+
+    def _get_wallet_transaction_domain(self):
+        self.ensure_one()
+        address_names = [address for address in self.wallet_address_ids.mapped('name') if address]
+        domain = [('wallet_address_id.wallet_id', '=', self.id)]
+        if address_names:
+            domain = [
+                '|',
+                '|',
+                ('wallet_address_id.wallet_id', '=', self.id),
+                ('sender', 'in', address_names),
+                ('recipient', 'in', address_names),
+            ]
+        return domain
+
+    def action_view_wallet_transactions(self):
+        self.ensure_one()
+        action = self.env.ref('crypto_payment_sync.action_crypto_transaction_evm_by_wallet_id').read()[0]
+        action['domain'] = self._get_wallet_transaction_domain()
+        action['context'] = {
+            'default_wallet_address_id': self.wallet_address_ids[:1].id if self.wallet_address_ids else False,
+        }
+        return action
 
     @api.depends('wallet_address_ids')
     def _compute_wallet_address_count(self):
@@ -79,18 +182,44 @@ class CryptoWallet(models.Model):
         for record in self:
             record.is_testnet = 'test' in (record.network_id.name or '').lower()
 
+    def _cryptoapis_path_parts(self):
+        self.ensure_one()
+        blockchain = self.blockchain_id.cryptoapis_slug or self.blockchain_id.technical_name or self.blockchain_id.name
+        network = self.network_id.cryptoapis_network or self.network_id.technical_name or self.network_id.name
+        blockchain = (blockchain or "").lower().strip()
+        network = (network or "").lower().strip()
+        if not blockchain or not network:
+            raise UserError(_("Set Crypto APIs blockchain and network codes before calling Crypto APIs."))
+        if self.network_id.is_evm_compatible or "ether" in blockchain or blockchain in ("ethereum", "polygon", "base"):
+            family = "evm"
+        elif "bitcoin" in blockchain:
+            family = "utxo"
+        else:
+            family = None
+        return family, blockchain, network
+
+    def _cryptoapis_hd_wallet_path(self, suffix):
+        self.ensure_one()
+        family, blockchain, network = self._cryptoapis_path_parts()
+        family_prefix = "%s/" % family if family else ""
+        return f"hd-wallets/{family_prefix}{blockchain}/{network}/{self.xpub}/{suffix.lstrip('/')}"
+
     def action_generate_wallet_from_api(self):
         for rec in self:
-            api_key = rec.payment_provider_id.cryptoapis_api_key
-            if not api_key:
-                raise UserError(
-                    _("Crypto API Key not configured. Set it in System Parameters with key: crypto_api.key"))
+            allow_generation = self.env['ir.config_parameter'].sudo().get_param(
+                'crypto_payment_sync.allow_local_wallet_generation'
+            ) == '1'
+            if not allow_generation:
+                raise UserError(_(
+                    "Local mnemonic generation is disabled by default. Set "
+                    "crypto_payment_sync.allow_local_wallet_generation to 1 only in an approved test workflow."
+                ))
+            provider = rec.payment_provider_id
+            provider._cryptoapis_headers()
 
             # Step 1: Generate mnemonic
             mnemo = Mnemonic("english")
             mnemonic_words = mnemo.generate(strength=128)
-            print("🔐 Mnemonic:", mnemonic_words)
-
             # Step 2: Generate seed from mnemonic
             seed = mnemo.to_seed(mnemonic_words)
 
@@ -103,23 +232,7 @@ class CryptoWallet(models.Model):
             account = 0 + 0x80000000
             xpub = bip32.get_xpub_from_path([purpose, coin, account])
 
-            print("🔑 xPub:", xpub)
-
-            # === 2. Use Crypto APIs to Get Address ===
-
-            blockchain = self.blockchain_id.name.lower()
-            network = self.network_id.name.lower().replace(" ", "-").replace(blockchain, "").replace("testnet",
-                                                                                                     "").replace("-",
-                                                                                                                 "")
-
-            # CryptoAPIs endpoint to derive address from xpub
-
-            url = f"https://rest.cryptoapis.io/hd-wallets/manage/{blockchain}/{network}/{xpub}/sync"
-
-            headers = {
-                "Content-Type": "application/json",
-                "X-API-Key": api_key
-            }
+            _family, blockchain, network = rec._cryptoapis_path_parts()
 
             payload = {
                 "context": "create_hd_wallet_from_odoo",
@@ -129,14 +242,10 @@ class CryptoWallet(models.Model):
                     }
                 }
             }
-            _logger.info('Reuested URL' + str(url))
-            response = requests.post(url, json=payload, headers=headers)
-            _logger.info('Response Statuse Code' + str(response.status_code))
-            if response.status_code != 200:
-                raise UserError(_("Wallet creation failed: %s") % response.text)
-
-            wallet_data = response.json().get('data', {}).get('item', {})
-            _logger.info('Response wallet_data ' + str(wallet_data))
+            wallet_data = provider._cryptoapis_post(
+                f"hd-wallets/manage/{blockchain}/{network}/{xpub}/sync",
+                payload=payload,
+            ).get('data', {}).get('item', {})
             rec.write({
                 # 'wallet_id': wallet_data.get('walletId'),
                 'xpub': wallet_data.get('extendedPublicKey'),
@@ -145,58 +254,58 @@ class CryptoWallet(models.Model):
             # self.message_post(body=_("Wallet created successfully from Crypto APIs."))
 
     def sync_addresses(self):
+        total_created = 0
+        total_existing = 0
         for rec in self:
-            api_key = rec.payment_provider_id.cryptoapis_api_key
-            if not api_key:
-                raise UserError(
-                    _("Crypto API Key not configured. Set it in System Parameters with key: crypto_api.key"))
+            provider = rec.payment_provider_id
+            provider._cryptoapis_headers()
+            limit = provider._cryptoapis_page_size()
+            max_pages = provider._cryptoapis_max_pages()
+            family, _blockchain, _network = rec._cryptoapis_path_parts()
+            address_format = "p2wpkh" if family == "utxo" else ("classic" if not family else "standard")
+            address_obj = self.env['crypto.wallet.address']
             total_items = 100000
-            max_count = 500
             count = 0
-            times = 0
-            limit = 50
-            while count < total_items and count < max_count:
-                time.sleep(2)
-                offset = times * limit
-                blockchain = self.blockchain_id.name.lower()
-                network = self.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ", "")
-                if 'ether' in blockchain:
-                    url = f"https://rest.cryptoapis.io/hd-wallets/evm/{blockchain}/{network}/{rec.xpub}/addresses" \
-                          f"?context=list_synced_addresses_odoo&addressFormat=standard&isChangeAddress=0&limit=50&offset=" + str(
-                        offset)
-                if 'bitcoin' in blockchain:
-                    url = f"https://rest.cryptoapis.io/hd-wallets/utxo/{blockchain}/{network}/{rec.xpub}/addresses" \
-                          f"?context=list_synced_addresses_odoo&addressFormat=p2wpkh&isChangeAddress=0&limit=50&offset=" + str(
-                        offset)
-                if 'xrp' in blockchain:
-                    url = f"https://rest.cryptoapis.io/hd-wallets/{blockchain}/{network}/{rec.xpub}/addresses" \
-                          f"?context=list_synced_addresses_odoo&addressFormat=classic&isChangeAddress=0&limit=50&offset=" + str(
-                        offset)
-
-                headers = {
-                    "Content-Type": "application/json",
-                    "X-API-Key": api_key
-                }
-
-                _logger.info('Reuested URL' + str(url))
-                response = requests.get(url, headers=headers)
-                _logger.info('Response Statuse Code' + str(response.status_code))
-                if response.status_code != 200:
-                    raise UserError(_("Wallet Sync Addresses failed: %s") % response.text)
-
-                wallet_addresses = response.json().get('data', {}).get('items', {})
-                _logger.info('Response wallet_data ' + str(wallet_addresses))
-                address_obj = self.env['crypto.wallet.address']
-                if len(wallet_addresses) <= 0:
-                    break;
+            page = 0
+            while count < total_items and page < max_pages:
+                time.sleep(provider._cryptoapis_request_delay())
+                data = provider._cryptoapis_get(
+                    rec._cryptoapis_hd_wallet_path("addresses"),
+                    params={
+                        "context": "list_synced_addresses_odoo",
+                        "addressFormat": address_format,
+                        "limit": limit,
+                        "offset": page * limit,
+                    },
+                ).get('data', {})
+                total_items = data.get('total') or total_items
+                wallet_addresses = data.get('items') or []
+                if not wallet_addresses:
+                    break
                 for address in wallet_addresses:
-                    count = count + 1
+                    count += 1
                     address_val = address.get('address')
-                    address_exist = address_obj.search([('name', '=', address_val)])
-                    if not address_exist:
-                        address_obj.create({'name': address_val, 'wallet_id': rec.id, 'index': address.get(
-                            'index')})
-                times = times + 1
+                    if not address_val:
+                        continue
+                    if not address_obj.search([('name', '=', address_val)], limit=1):
+                        address_obj.create({'name': address_val, 'wallet_id': rec.id, 'index': address.get('index')})
+                        total_created += 1
+                    else:
+                        total_existing += 1
+                page += 1
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Crypto Wallet Address Sync"),
+                "message": _("Address sync completed. Created %s address(es), skipped %s existing address(es).") % (
+                    total_created,
+                    total_existing,
+                ),
+                "type": "success",
+                "sticky": False,
+            },
+        }
 
     def get_balance(self):
         for record in self:
@@ -205,30 +314,15 @@ class CryptoWallet(models.Model):
                 time_diff = datetime.now() - record.last_synced_balance
             else:
                 time_diff = timedelta(hours=1)
-            _logger.info('time_diff ' + str(time_diff.total_seconds()))
             # Check if more than one minute
             if time_diff.total_seconds() > 60:
-                blockchain = record.blockchain_id.name.lower()
-                network = record.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ", "")
                 extendedPublicKey = record.xpub
-                if 'ether' in blockchain:
-                    url = f"https://rest.cryptoapis.io/hd-wallets/evm/{blockchain}/{network}/{extendedPublicKey}/details?context=OdooGetWalletDetails"
-                if 'bitcoin' in blockchain:
-                    url = f"https://rest.cryptoapis.io/hd-wallets/utxo/{blockchain}/{network}/{extendedPublicKey}/details?context=OdooGetWalletDetails"
-                if 'xrp' in blockchain:
-                    url = f"https://rest.cryptoapis.io/hd-wallets/{blockchain}/{network}/{extendedPublicKey}/details?context=OdooGetWalletDetails"
-
-                headers = {
-                    "X-API-Key": record.payment_provider_id.cryptoapis_api_key
-                }
-                response = requests.get(url, headers=headers)
-                if response.status_code != 200:
-                    raise Exception(f"Failed to fetch crypto currencies: {response.text}")
-                _logger.info('response' + str(response))
-                data = response.json().get("data", [])
-                _logger.info('response Json Data' + str(data))
-                item = data.get("item", [])
-                _logger.info('response Json Item' + str(item))
+                if not extendedPublicKey:
+                    raise UserError(_("Set the wallet XPUB before syncing wallet balance."))
+                item = record.payment_provider_id._cryptoapis_get(
+                    record._cryptoapis_hd_wallet_path("details"),
+                    params={"context": "OdooGetWalletDetails"},
+                ).get("data", {}).get("item", {})
                 confirmedBalance = item.get("confirmedBalance")
                 totalReceived = item.get("totalReceived")
                 totalSpent = item.get("totalSpent")
@@ -240,27 +334,10 @@ class CryptoWallet(models.Model):
     def get_confirmed_transactions(self):
 
         for record in self:
-            blockchain = record.blockchain_id.name.lower()
-            network = record.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(
-                " ", "")
-            address = record.name
-
-            if 'ether' in blockchain:
-                url = f"https://rest.cryptoapis.io/hd-wallets/evm/{blockchain}/{network}/{record.xpub}/transactions?context=OdooGetWalletTransactions"
-            if 'bitcoin' in blockchain:
-                url = f"https://rest.cryptoapis.io/hd-wallets/utxo/{blockchain}/{network}/{record.xpub}/transactions?context=OdooGetWalletTransactions"
-            if 'xrp' in blockchain:
-                url = f"https://rest.cryptoapis.io/hd-wallets/{blockchain}/{network}/{record.xpub}/transactions?context=OdooGetWalletTransactions"
-
-            headers = {
-                "X-API-Key": record.payment_provider_id.cryptoapis_api_key
-            }
-            response = requests.get(url, headers=headers)
-            if response.status_code != 200:
-                raise Exception(f"Failed to fetch crypto transactions: {response.text}")
-            _logger.info('response' + str(response))
-            data = response.json().get("data", [])
-            _logger.info('response Json Data' + str(data))
+            data = record.payment_provider_id._cryptoapis_get(
+                record._cryptoapis_hd_wallet_path("transactions"),
+                params={"context": "OdooGetWalletTransactions"},
+            ).get("data", {})
             items = data.get("items", [])
             transaction_obj = self.env['crypto.transaction.evm']
             for item in items:
@@ -275,24 +352,8 @@ class CryptoWallet(models.Model):
 
     def derive_new_addresses(self):
         for rec in self:
-            api_key = rec.payment_provider_id.cryptoapis_api_key
-            if not api_key:
-                raise UserError(
-                    _("Crypto API Key not configured. Set it in System Parameters with key: crypto_api.key"))
-
-            blockchain = self.blockchain_id.name.lower()
-            network = self.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ", "")
-            if 'ether' in blockchain:
-                url = f"https://rest.cryptoapis.io/hd-wallets/evm/{blockchain}/{network}/{rec.xpub}/addresses/derive-and-sync?context=OdooDeriveNewAddresses"
-            if 'bitcoin' in blockchain:
-                url = f"https://rest.cryptoapis.io/hd-wallets/utxo/{blockchain}/{network}/{rec.xpub}/addresses/derive-and-sync?context=OdooDeriveNewAddresses"
-            if 'xrp' in blockchain:
-                url = f"https://rest.cryptoapis.io/hd-wallets/{blockchain}/{network}/{rec.xpub}/addresses/derive-and-sync?context=OdooDeriveNewAddresses"
-
-            headers = {
-                "Content-Type": "application/json",
-                "X-API-Key": api_key
-            }
+            provider = rec.payment_provider_id
+            provider._cryptoapis_headers()
 
             payload = {
                 "context": "OdooDeriveNewAddresses",
@@ -303,17 +364,14 @@ class CryptoWallet(models.Model):
                 }
             }
 
-            _logger.info('Reuested URL' + str(url))
-            response = requests.post(url, json=payload, headers=headers)
-            _logger.info('Response Statuse Code' + str(response.status_code))
-            if response.status_code != 200:
-                raise UserError(_("Wallet Sync Addresses failed: %s") % response.text)
-
-            wallet_addresses = response.json().get('data', {}).get('items', {})
-            _logger.info('Response wallet_data ' + str(wallet_addresses))
+            wallet_addresses = provider._cryptoapis_post(
+                rec._cryptoapis_hd_wallet_path("addresses/derive-and-sync"),
+                payload=payload,
+                params={"context": "OdooDeriveNewAddresses"},
+            ).get('data', {}).get('items', [])
             address_obj = self.env['crypto.wallet.address']
             if len(wallet_addresses) <= 0:
-                break;
+                break
             for address in wallet_addresses:
                 # count = count + 1
                 address_val = address.get('address')

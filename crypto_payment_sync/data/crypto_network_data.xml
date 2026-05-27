@@ -4,16 +4,25 @@
         <record id="network_ethereum_mainnet" model="crypto.network">
             <field name="name">Ethereum Mainnet</field>
             <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
             <field name="chain_id">1</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="rpc_url">https://mainnet.infura.io/v3/YOUR_PROJECT_ID</field>
+            <field name="explorer_url">https://etherscan.io</field>
             <field name="blockchain_id" ref="blockchain_ethereum"/>
 <!--            <field name="currency_code">ETH</field>-->
         </record>
         <record id="network_ethereum_goerli" model="crypto.network">
             <field name="name">Ethereum Goerli Testnet</field>
             <field name="technical_name">goerli</field>
+            <field name="cryptoapis_network">goerli</field>
             <field name="chain_id">5</field>
+            <field name="is_testnet">True</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="rpc_url">https://goerli.infura.io/v3/YOUR_PROJECT_ID</field>
+            <field name="explorer_url">https://goerli.etherscan.io</field>
             <field name="blockchain_id" ref="blockchain_ethereum"/>
 
 <!--            <field name="currency_code">ETH</field>-->
@@ -23,51 +32,76 @@
         <record id="network_bsc_mainnet" model="crypto.network">
             <field name="name">BNB Smart Chain Mainnet</field>
             <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
             <field name="chain_id">56</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">BNB</field>
             <field name="rpc_url">https://bsc-dataseed.binance.org/</field>
+            <field name="explorer_url">https://bscscan.com</field>
             <field name="blockchain_id" ref="blockchain_bnb"/>
         </record>
         <record id="network_bsc_testnet" model="crypto.network">
             <field name="name">BNB Smart Chain Testnet</field>
-            <field name="technical_name">bnb</field>
+            <field name="technical_name">testnet</field>
+            <field name="cryptoapis_network">testnet</field>
             <field name="chain_id">97</field>
+            <field name="is_testnet">True</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">tBNB</field>
             <field name="rpc_url">https://data-seed-prebsc-1-s1.binance.org:8545/</field>
+            <field name="explorer_url">https://testnet.bscscan.com</field>
             <field name="blockchain_id" ref="blockchain_bnb"/>
         </record>
 
         <!-- Polygon -->
         <record id="network_polygon_mainnet" model="crypto.network">
             <field name="name">Polygon Mainnet</field>
-            <field name="technical_name">polygon</field>
+            <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
             <field name="chain_id">137</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">POL</field>
             <field name="rpc_url">https://polygon-rpc.com</field>
+            <field name="explorer_url">https://polygonscan.com</field>
             <field name="blockchain_id" ref="blockchain_polygon"/>
         </record>
 
         <!-- Avalanche -->
         <record id="network_avalanche_c" model="crypto.network">
             <field name="name">Avalanche C-Chain</field>
-            <field name="technical_name">avalanche</field>
+            <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
             <field name="chain_id">43114</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">AVAX</field>
             <field name="rpc_url">https://api.avax.network/ext/bc/C/rpc</field>
+            <field name="explorer_url">https://snowtrace.io</field>
             <field name="blockchain_id" ref="blockchain_avalanche"/>
         </record>
 
         <!-- Arbitrum -->
         <record id="network_arbitrum_one" model="crypto.network">
             <field name="name">Arbitrum One</field>
-            <field name="technical_name">arbitrum</field>
+            <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
             <field name="chain_id">42161</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="rpc_url">https://arb1.arbitrum.io/rpc</field>
+            <field name="explorer_url">https://arbiscan.io</field>
             <field name="blockchain_id" ref="blockchain_arbitrum"/>
         </record>
 
         <!-- Optimism -->
         <record id="network_optimism_mainnet" model="crypto.network">
             <field name="name">Optimism Mainnet</field>
-            <field name="technical_name">optimism</field>
+            <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
             <field name="chain_id">10</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="rpc_url">https://mainnet.optimism.io</field>
+            <field name="explorer_url">https://optimistic.etherscan.io</field>
             <field name="blockchain_id" ref="blockchain_optimism"/>
         </record>
 
@@ -75,17 +109,99 @@
         <record id="network_base_mainnet" model="crypto.network">
             <field name="name">Base Mainnet</field>
             <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
             <field name="chain_id">8453</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="rpc_url">https://mainnet.base.org</field>
+            <field name="explorer_url">https://basescan.org</field>
             <field name="blockchain_id" ref="blockchain_base"/>
         </record>
 
         <record id="network_ethereum_sepolia" model="crypto.network">
             <field name="name">Ethereum Sepolia Testnet</field>
             <field name="technical_name">sepolia</field>
+            <field name="cryptoapis_network">sepolia</field>
             <field name="chain_id">11155111</field>
+            <field name="is_testnet">True</field>
+            <field name="is_evm_compatible">True</field>
+            <field name="native_asset_symbol">ETH</field>
             <field name="rpc_url">https://sepolia.infura.io/v3/YOUR_PROJECT_ID</field>
+            <field name="explorer_url">https://sepolia.etherscan.io</field>
             <field name="blockchain_id" ref="blockchain_ethereum"/>
+        </record>
+
+        <record id="network_bitcoin_mainnet" model="crypto.network">
+            <field name="name">Bitcoin Mainnet</field>
+            <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
+            <field name="chain_id">0</field>
+            <field name="is_evm_compatible">False</field>
+            <field name="native_asset_symbol">BTC</field>
+            <field name="rpc_url">read-only-provider</field>
+            <field name="explorer_url">https://www.blockchain.com/explorer</field>
+            <field name="blockchain_id" ref="blockchain_bitcoin"/>
+        </record>
+
+        <record id="network_bitcoin_testnet" model="crypto.network">
+            <field name="name">Bitcoin Testnet</field>
+            <field name="technical_name">testnet</field>
+            <field name="cryptoapis_network">testnet</field>
+            <field name="chain_id">0</field>
+            <field name="is_testnet">True</field>
+            <field name="is_evm_compatible">False</field>
+            <field name="native_asset_symbol">BTC</field>
+            <field name="rpc_url">read-only-provider</field>
+            <field name="explorer_url">https://mempool.space/testnet</field>
+            <field name="blockchain_id" ref="blockchain_bitcoin"/>
+        </record>
+
+        <record id="network_solana_mainnet" model="crypto.network">
+            <field name="name">Solana Mainnet</field>
+            <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
+            <field name="chain_id">0</field>
+            <field name="is_evm_compatible">False</field>
+            <field name="native_asset_symbol">SOL</field>
+            <field name="rpc_url">https://api.mainnet-beta.solana.com</field>
+            <field name="explorer_url">https://solscan.io</field>
+            <field name="blockchain_id" ref="blockchain_solana"/>
+        </record>
+
+        <record id="network_tron_mainnet" model="crypto.network">
+            <field name="name">Tron Mainnet</field>
+            <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
+            <field name="chain_id">0</field>
+            <field name="is_evm_compatible">False</field>
+            <field name="native_asset_symbol">TRX</field>
+            <field name="rpc_url">read-only-provider</field>
+            <field name="explorer_url">https://tronscan.org</field>
+            <field name="blockchain_id" ref="blockchain_tron"/>
+        </record>
+
+        <record id="network_litecoin_mainnet" model="crypto.network">
+            <field name="name">Litecoin Mainnet</field>
+            <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
+            <field name="chain_id">0</field>
+            <field name="is_evm_compatible">False</field>
+            <field name="native_asset_symbol">LTC</field>
+            <field name="rpc_url">read-only-provider</field>
+            <field name="explorer_url">https://blockchair.com/litecoin</field>
+            <field name="blockchain_id" ref="blockchain_litecoin"/>
+        </record>
+
+        <record id="network_cardano_mainnet" model="crypto.network">
+            <field name="name">Cardano Mainnet</field>
+            <field name="technical_name">mainnet</field>
+            <field name="cryptoapis_network">mainnet</field>
+            <field name="chain_id">0</field>
+            <field name="is_evm_compatible">False</field>
+            <field name="native_asset_symbol">ADA</field>
+            <field name="rpc_url">read-only-provider</field>
+            <field name="explorer_url">https://cardanoscan.io</field>
+            <field name="blockchain_id" ref="blockchain_cardano"/>
         </record>
 
 

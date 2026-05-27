@@ -6,8 +6,11 @@
             <list string="Crypto Blockchains">
                 <field name="name"/>
                 <field name="technical_name"/>
+                <field name="cryptoapis_slug"/>
                 <field name="symbol"/>
+                <field name="native_asset_symbol"/>
                 <field name="network_type"/>
+                <field name="is_evm_compatible"/>
                 <field name="explorer_url"/>
                 <field name="active"/>
 
@@ -24,8 +27,11 @@
                     <group>
                         <field name="name"/>
                         <field name="technical_name"/>
+                        <field name="cryptoapis_slug"/>
                         <field name="symbol"/>
+                        <field name="native_asset_symbol"/>
                         <field name="network_type"/>
+                        <field name="is_evm_compatible"/>
                         <field name="explorer_url"/>
                         <field name="active"/>
                     </group>

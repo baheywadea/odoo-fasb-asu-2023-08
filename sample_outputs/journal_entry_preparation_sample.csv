@@ -1,0 +1,3 @@
+preparation_id,entry_date,source_reference,line_name,account_mapping,debit,credit,status,reviewer_notes
+JEP-DEMO-0001,2026-03-31,FVM-DEMO-0001,Digital asset fair-value support,Digital Asset Treasury,75.00,0.00,prepared,Fake preview line only
+JEP-DEMO-0001,2026-03-31,FVM-DEMO-0001,Fair-value gain support,Fair Value Gain,0.00,75.00,prepared,Fake preview line only

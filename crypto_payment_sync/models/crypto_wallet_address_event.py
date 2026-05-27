@@ -1,10 +1,6 @@
-import requests
-from odoo import models, fields, api, _
+from odoo import models, fields, _
 from odoo.exceptions import UserError
-import logging
-from datetime import datetime, timedelta
-
-_logger = logging.getLogger(__name__)
+from datetime import datetime
 
 
 class CryptoWalletAddressEvent(models.Model):
@@ -25,7 +21,7 @@ class CryptoWalletAddressEvent(models.Model):
 
     event_type = fields.Char("Event Type")
 
-    active = fields.Boolean(string="Active")
+    active = fields.Boolean(string="Active", default=True)
 
     allow_duplicates = fields.Boolean(string="Allow Dupilcates")
 
@@ -48,34 +44,27 @@ class CryptoWalletAddressEvent(models.Model):
     def get_event_details(self):
 
         for record in self:
-            blockchain = record.wallet_id.blockchain_id.name.lower()
-            network = record.wallet_id.network_id.name.lower().replace('testnet', "").replace(blockchain, "").replace(" ", "")
-            # address = record.name
             referenceId = record.reference_id
-            url = f"https://rest.cryptoapis.io/blockchain-events/{blockchain}/{network}/{referenceId}?context=OdooGetEvent"
-            headers = {
-                "X-API-Key": record.wallet_id.payment_provider_id.cryptoapis_api_key
-            }
-            response = requests.get(url, headers=headers)
-            if response.status_code != 200:
-                raise Exception(f"Failed to fetch Event : {response.text}")
-            _logger.info('response' + str(response))
-            data = response.json().get("data", [])
-            _logger.info('response Json Data' + str(data))
-            item = data.get("item", [])
+            if not referenceId:
+                raise UserError(_("Set the Crypto APIs event reference before fetching event details."))
+            provider = record.wallet_id.payment_provider_id
+            _family, blockchain, network = record.wallet_id._cryptoapis_path_parts()
+            data = provider._cryptoapis_get(
+                f"blockchain-events/{blockchain}/{network}/{referenceId}",
+                params={"context": "OdooGetEvent"},
+            ).get("data") or {}
+            item = data.get("item") or {}
 
-            record.write({
-                # "address": "tb1qtm44m6xmuasy4sc7nl7thvuxcerau2dfvkkgsc",
-                # "blockchain": "bitcoin",
+            vals = {
                 "callback_secretkey": item.get("callbackSecretKey"),
-                "name": item.get("callbackUrl"),
                 "confirmations_count": item.get("confirmationsCount"),
-                "created_timestamp": datetime.utcfromtimestamp(data.get('createdTimestamp')) if data.get('createdTimestamp') else False,
-
+                "created_timestamp": datetime.utcfromtimestamp(item.get('createdTimestamp'))
+                if item.get('createdTimestamp') else False,
                 "event_type": item.get("eventType"),
-                "active": item.get("isActive"),
+                "active": bool(item.get("isActive")),
                 "reference_id": item.get("referenceId"),
                 "transaction_id": item.get("transactionId"),
-
-            })
-
+            }
+            if item.get("callbackUrl"):
+                vals["name"] = item["callbackUrl"]
+            record.write(vals)

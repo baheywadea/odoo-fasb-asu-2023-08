@@ -45,7 +45,18 @@
             </xpath>
             <group name="provider_credentials" position="inside">
                 <group invisible="code != 'crypto'">
-                    <field name="cryptoapis_api_key" required="code == 'crypto' and state != 'disabled'"/>
+                    <field name="cryptoapis_api_key" required="code == 'crypto' and state != 'disabled'"
+                           password="True"/>
+                    <field name="cryptoapis_api_key_masked" readonly="1"/>
+                    <field name="walletconnect_project_id"/>
+                    <field name="cryptoapis_page_size"/>
+                    <field name="cryptoapis_max_pages"/>
+                    <field name="cryptoapis_request_delay"/>
+                    <field name="cryptoapis_wallet_network_ids"
+                           widget="many2many_tags"
+                           domain="[('active', '=', True)]"
+                           options="{'no_create': True}"/>
+                    <field name="cryptoapis_wallet_network_xmlids" invisible="1"/>
 <!--                    <field name="crypto_wallet_address" required="code == 'crypto' and state != 'disabled'"/>-->
                     <!--                    <field name="supported_cryptos" required="code == 'crypto' and state != 'disabled'"/>-->
                 </group>

@@ -1,0 +1,4 @@
+source_system,source_transaction_id,transaction_timestamp_utc,asset_symbol,asset_name,transaction_type,quantity,wallet_or_account,network,counterparty_reference,source_amount_usd,source_fee_usd,reconciliation_status,notes
+demo_exchange,DEMO-TX-0001,2026-01-15T14:22:10Z,BTC,Bitcoin,purchase,0.02500000,Demo Treasury Wallet,Bitcoin Mainnet,DEMO-CP-001,1050.00,3.25,matched,Fake sample purchase for workflow demonstration
+demo_payment_gateway,DEMO-TX-0002,2026-02-04T09:11:42Z,ETH,Ether,customer_payment,0.75000000,Demo Receipts Wallet,Ethereum Mainnet,INV-DEMO-1007,1800.00,5.00,pending_review,Fake sample customer payment
+demo_exchange,DEMO-TX-0003,2026-03-10T19:35:00Z,BTC,Bitcoin,disposition,0.01000000,Demo Treasury Wallet,Bitcoin Mainnet,SALE-DEMO-204,520.00,2.10,matched,Fake sample disposition for Form 8949 reconciliation support

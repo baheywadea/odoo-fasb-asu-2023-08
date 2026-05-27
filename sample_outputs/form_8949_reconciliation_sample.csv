@@ -1,0 +1,2 @@
+reconciliation_id,source_transaction_id,asset_symbol,quantity_disposed,date_acquired,date_disposed,proceeds_support_usd,cost_basis_support_usd,gain_loss_support_usd,reconciliation_status,review_notes
+8949-DEMO-0001,DEMO-TX-0003,BTC,0.01000000,2026-01-15,2026-03-10,520.00,420.00,100.00,pending_review,Fake support row; tax character and holding period require professional review

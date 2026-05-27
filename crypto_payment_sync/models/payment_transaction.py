@@ -7,7 +7,7 @@ import secrets
 from odoo import _, fields, models
 from werkzeug.urls import url_encode
 from odoo.http import request
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 from werkzeug.urls import url_decode, url_parse
 
 _logger = logging.getLogger(__name__)
@@ -25,6 +25,87 @@ class PaymentTransaction(models.Model):
     crypto_public_token = fields.Char(copy=False, index=True)
 
     crypto_tx_hash = fields.Char(copy=False,string="TX Hash")
+
+    def _get_crypto_checkout_company(self):
+        self.ensure_one()
+        order = self.sale_order_ids[:1]
+        return order.company_id or self.company_id
+
+    def _get_crypto_checkout_currency(self):
+        self.ensure_one()
+        order = self.sale_order_ids[:1]
+        currency = order.pricelist_id.currency_id or self.currency_id
+        return currency if currency and currency.type == 'crypto' else self.env['res.currency']
+
+    def _get_crypto_checkout_wallet(self):
+        self.ensure_one()
+        company = self._get_crypto_checkout_company()
+        domain = [
+            ('payment_provider_id', '=', self.provider_id.id),
+            ('active', '=', True),
+        ]
+        if company:
+            domain += ['|', ('company_id', '=', company.id), ('company_id', '=', False)]
+        wallets = self.env["crypto.wallet"].search(domain)
+        if not wallets:
+            raise UserError(_(
+                "No active crypto wallet is configured for this payment provider and company. "
+                "Create or sync a wallet, assign it to this provider, and add wallet addresses."
+            ))
+
+        if self.provider_id.state == 'test':
+            wallets = wallets.filtered(lambda wallet: wallet.network_id.is_testnet)
+        elif self.provider_id.state == 'enabled':
+            wallets = wallets.filtered(lambda wallet: not wallet.network_id.is_testnet)
+        if not wallets:
+            raise UserError(_(
+                "No crypto wallet is configured for the provider state. Use a testnet wallet when the provider is "
+                "in Test Mode, or a mainnet wallet when the provider is Enabled."
+            ))
+
+        checkout_currency = self._get_crypto_checkout_currency()
+        currency_wallets = wallets.filtered(lambda wallet: wallet.currency_id == checkout_currency) if checkout_currency else wallets
+        for candidates in (
+            currency_wallets.filtered('is_default'),
+            currency_wallets,
+            wallets.filtered('is_default'),
+            wallets,
+        ):
+            if candidates:
+                return candidates[0]
+        raise UserError(_("No usable crypto wallet is configured for this payment."))
+
+    def _reserve_crypto_checkout_address(self, wallet):
+        self.ensure_one()
+        if wallet.checkout_address_mode == 'default_wallet_address':
+            address = wallet._get_default_checkout_address()
+            self.write({'crypto_address': address.id})
+            return address
+
+        address_obj = self.env["crypto.wallet.address"]
+        address = address_obj.search([('payment_transaction_id', '=', self.id)], limit=1)
+        if not address:
+            address = address_obj.search([
+                ('payment_transaction_id', '=', False),
+                ('wallet_id', '=', wallet.id),
+                ('event_ids', '=', False),
+            ], limit=1)
+        if not address:
+            wallet.derive_new_addresses()
+            address = address_obj.search([
+                ('payment_transaction_id', '=', False),
+                ('wallet_id', '=', wallet.id),
+                ('event_ids', '=', False),
+            ], limit=1)
+        if not address:
+            raise UserError(_(
+                "No available wallet address was found for %(wallet)s. "
+                "Sync or derive wallet addresses before accepting this payment.",
+                wallet=wallet.display_name,
+            ))
+        address.write({'payment_transaction_id': self.id})
+        self.write({'crypto_address': address.id})
+        return address
 
     def _get_specific_rendering_values(self, processing_values):
         res = super()._get_specific_rendering_values(processing_values)
@@ -45,61 +126,8 @@ class PaymentTransaction(models.Model):
         if not self.crypto_amount_eth:
             self.crypto_amount_eth = float(self.amount)
 
-        address = None
-        # 3) Ensure deposit address exists (replace this with your real address generator)
-        for order in self.sale_order_ids:
-            wallet_id = self.env["crypto.wallet"].search(
-                [('company_id', '=', order.company_id.id), ('currency_id', '=', order.pricelist_id.currency_id.id)])
-            if len(wallet_id) > 0:
-                wallet_id = wallet_id[0]
-                address = self.env["crypto.wallet.address"].search([('payment_transaction_id', '=', self.id)])
-                if not address:
-                    address = self.env["crypto.wallet.address"].search(
-                        [('payment_transaction_id', '=', None), ('wallet_id', '=', wallet_id.id),
-                         ('event_ids', '=', None)])
-                    if len(address) > 0:
-                        address = address[0]
-                        address.write({'payment_transaction_id': self.id})
-                        self.write({'crypto_address': address.id})
-                    else:
-                        wallet_id.derive_new_addresses()
-                        address = self.env["crypto.wallet.address"].search(
-                            [('payment_transaction_id', '=', None), ('wallet_id', '=', wallet_id.id),
-                             ('event_ids', '=', None)])
-                        if len(address) > 0:
-                            address = address[0]
-                            address.write({'payment_transaction_id': self.id})
-                            self.write({'crypto_address': address.id})
-            else:
-                raise UserError(
-                    _("Crypto API Key No Wallet configured."))
-
-        if not address:
-            wallet_id = self.env["crypto.wallet"].search(
-                [('company_id', '=', self.company_id.id), ('currency_id', '=', self.currency_id.id)])
-            if len(wallet_id) > 0:
-                wallet_id = wallet_id[0]
-                address = self.env["crypto.wallet.address"].search([('payment_transaction_id', '=', self.id)])
-                if not address:
-                    address = self.env["crypto.wallet.address"].search(
-                        [('payment_transaction_id', '=', None), ('wallet_id', '=', wallet_id.id),
-                         ('event_ids', '=', None)])
-                    if len(address) > 0:
-                        address = address[0]
-                        address.write({'payment_transaction_id': self.id})
-                        self.write({'crypto_address': address.id})
-                    else:
-                        wallet_id.derive_new_addresses()
-                        address = self.env["crypto.wallet.address"].search(
-                            [('payment_transaction_id', '=', None), ('wallet_id', '=', wallet_id.id),
-                             ('event_ids', '=', None)])
-                        if len(address) > 0:
-                            address = address[0]
-                            address.write({'payment_transaction_id': self.id})
-                            self.write({'crypto_address': address.id})
-            else:
-                raise UserError(
-                    _("Crypto API Key No Wallet configured."))
+        wallet = self._get_crypto_checkout_wallet()
+        address = self._reserve_crypto_checkout_address(wallet)
 
         # 4) Build redirect URL to our QR page
 
@@ -129,13 +157,13 @@ class PaymentTransaction(models.Model):
             'crypto_network': self.crypto_address.wallet_id.network_id.name,
         })
 
-        _logger.info("Rendering Values : \n%s", str(processing_values))
+        _logger.debug("Prepared crypto rendering values for transaction %s", self.reference)
 
         # Return processing_values (same behavior as your existing code)
         return processing_values
 
     def _process(self, provider_code, notification_data):
-        _logger.info("crypto Payment _process_notification_data : \n%s", str(notification_data))
+        _logger.info("Processing crypto payment notification for transaction %s", self.reference)
         # super()._process(provider_code,notification_data)
         if provider_code != 'crypto':
             return super()._process(provider_code, notification_data)
@@ -179,21 +207,16 @@ class PaymentTransaction(models.Model):
         res = super()._get_specific_rendering_values(processing_values)
         if self.provider_code != 'crypto':
             return res
-        api_key = "SK_KWT_vVZlnnAqu8jRByOWaRPNId4ShzEDNt256dvnjebuyzo52dXjAfRx2ixW5umjWSUx"
+        api_key = self.env['ir.config_parameter'].sudo().get_param('crypto_payment_sync.myfatoorah_api_key')
+        if not api_key:
+            raise UserError(_("Configure crypto_payment_sync.myfatoorah_api_key before using MyFatoorah rendering."))
         api_url = "{}/v2/SendPayment".format("https://apitest.myfatoorah.com")
         payload = self._prepare_crypto_invoice_link_payload(processing_values)
-        # Log MyFatoorah Payload
-        _logger.info("crypto Payload is :\n%s", payload)
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + api_key}
-        response = requests.post(api_url, data=json.dumps(payload), headers=headers)
-        _logger.info("crypto Response is :\n%s", response)
-        url = "https://portal.myfatoorah.com/Files/API/mf-config.json"
-        mf_countries = requests.get(url).json()
-        _logger.info("mf_countries: \n%s", mf_countries)
-        invoice_id = ''
+        response = requests.post(api_url, data=json.dumps(payload), headers=headers, timeout=30)
         invoice_url = '#'
         if response.status_code != 200:
-            _logger.info("Failed on generating invoice with error:\n%s", response.json())
+            _logger.warning("MyFatoorah invoice generation failed with HTTP %s", response.status_code)
         if response.status_code == 200:
             response_data = response.json()
             self.provider_reference = response_data["Data"]["InvoiceId"]

@@ -1,0 +1,2 @@
+source_provider,source_transaction_id,transaction_hash,timestamp,asset_symbol,quantity,fee_quantity,fee_asset_symbol,transaction_type,processing_status,duplicate_key,reviewer_notes
+cryptoapis,0xdemo000000000000000000000000000000000001,0xdemo000000000000000000000000000000000001,2026-01-15T14:22:10+00:00,ETH,0.75000000,0.00210000,ETH,unknown,needs_review,fixture-generated-demo-key,Classification requires professional review

@@ -7,14 +7,20 @@
         </record>
 
         <record id="crypto_payment_sync.group_crypto_user" model="res.groups">
-            <field name="name">Crypto User</field>
+            <field name="name">Crypto Accounting User</field>
             <field name="privilege_id" ref="crypto_payment_sync.group_crypto_user_privilege"/>
         </record>
 
-        <record id="crypto_payment_sync.group_crypto_admin" model="res.groups">
-            <field name="name">Crypto Admin</field>
+        <record id="crypto_payment_sync.group_crypto_reviewer" model="res.groups">
+            <field name="name">Crypto Accounting Reviewer</field>
             <field name="privilege_id" ref="crypto_payment_sync.group_crypto_user_privilege"/>
             <field name="implied_ids" eval="[(4, ref('group_crypto_user'))]"/>
+        </record>
+
+        <record id="crypto_payment_sync.group_crypto_admin" model="res.groups">
+            <field name="name">Crypto Accounting Manager</field>
+            <field name="privilege_id" ref="crypto_payment_sync.group_crypto_user_privilege"/>
+            <field name="implied_ids" eval="[(4, ref('group_crypto_reviewer'))]"/>
 
         </record>
     </data>
