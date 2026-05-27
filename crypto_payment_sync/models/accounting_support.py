@@ -958,7 +958,7 @@ class CryptoAuditEvidencePackage(models.Model):
         for tx in self.payment_transaction_ids:
             wallet = tx.crypto_address.wallet_id if tx.crypto_address else self.env["crypto.wallet"]
             asset = tx.currency_id if tx.currency_id and tx.currency_id.type == "crypto" else wallet.currency_id
-            symbol = asset.name or tx.currency_id.name or "Unspecified"
+            symbol = self._asset_network_label_for_payment_transaction(tx)
             bucket = totals.setdefault(symbol, {"quantity": 0.0, "fiat_amount": 0.0, "transactions": 0, "lines": 0})
             bucket["quantity"] += tx.crypto_amount_eth or (tx.amount if tx.currency_id.type == "crypto" else 0.0)
             bucket["fiat_amount"] += tx.amount if tx.currency_id.type != "crypto" else 0.0
@@ -971,6 +971,106 @@ class CryptoAuditEvidencePackage(models.Model):
                 bucket["fiat_amount"] += line.debit or line.credit or 0.0
                 bucket["lines"] += 1
         return totals
+
+    def _asset_network_label_for_payment_transaction(self, payment_tx):
+        wallet = payment_tx.crypto_address.wallet_id if payment_tx and payment_tx.crypto_address else self.env["crypto.wallet"]
+        asset = (
+            payment_tx.currency_id
+            if payment_tx and payment_tx.currency_id and payment_tx.currency_id.type == "crypto"
+            else wallet.currency_id
+        )
+        asset_label = asset.display_name or asset.name if asset else False
+        if not asset_label and payment_tx and payment_tx.currency_id:
+            asset_label = payment_tx.currency_id.display_name or payment_tx.currency_id.name
+        network = wallet.network_id if wallet else self.env["crypto.network"]
+        network_label = network.display_name or network.name if network else False
+        if asset_label and network_label:
+            return "%s - %s" % (asset_label.upper(), network_label.upper())
+        return (asset_label or network_label or "Unspecified").upper()
+
+    def _asset_network_label_for_normalized_transaction(self, normalized):
+        payment_tx = normalized.payment_transaction_id
+        if payment_tx:
+            return self._asset_network_label_for_payment_transaction(payment_tx)
+        asset_label = normalized.asset_id.display_name or normalized.asset_symbol or "Digital asset"
+        network_label = normalized.network_id.display_name or normalized.chain_reference
+        if asset_label and network_label:
+            return "%s - %s" % (asset_label.upper(), network_label.upper())
+        return (asset_label or "Digital asset").upper()
+
+    def _source_reference_for_normalized_transaction(self, normalized):
+        payment_tx = normalized.payment_transaction_id
+        account_payment = normalized.account_payment_id
+        references = []
+        if normalized.transaction_hash:
+            references.append(_("Blockchain hash: %s") % normalized.transaction_hash)
+        if normalized.source_transaction_id:
+            references.append(_("Odoo reference: %s") % normalized.source_transaction_id)
+        if payment_tx and payment_tx.reference and payment_tx.reference not in references:
+            references.append(_("Payment transaction: %s") % payment_tx.reference)
+        if account_payment:
+            payment_ref = account_payment.name
+            if not payment_ref and "memo" in account_payment._fields:
+                payment_ref = account_payment.memo
+            if not payment_ref and "ref" in account_payment._fields:
+                payment_ref = account_payment.ref
+            if payment_ref:
+                references.append(_("Account payment: %s") % payment_ref)
+            memo = account_payment.memo if "memo" in account_payment._fields else False
+            if memo and memo != payment_ref:
+                references.append(_("Payment memo: %s") % memo)
+        if not references:
+            references.append(_("Source provider: %s") % (normalized.source_provider or "Needs Review"))
+        return "\n".join(references)
+
+    def _gross_support_for_normalized_transaction(self, normalized):
+        payment_tx = normalized.payment_transaction_id
+        if payment_tx:
+            return payment_tx.amount or 0.0
+        account_payment = normalized.account_payment_id
+        if account_payment:
+            return account_payment.amount or 0.0
+        return 0.0
+
+    def _cost_basis_support_for_normalized_transaction(self, normalized, gross_support):
+        payment_tx = normalized.payment_transaction_id
+        if payment_tx and payment_tx.amount:
+            return payment_tx.amount
+        account_payment = normalized.account_payment_id
+        if account_payment and account_payment.amount:
+            return account_payment.amount
+        return gross_support or 0.0
+
+    def _create_or_update_fair_value_measurement(self, normalized, gross_support, cost_basis_support):
+        if not normalized.timestamp or not normalized.quantity:
+            return self.env["crypto.fair.value.measurement"]
+        existing = self.fair_value_measurement_ids.filtered(
+            lambda item: item.normalized_transaction_id == normalized
+        )[:1] or self.env["crypto.fair.value.measurement"].search(
+            [("normalized_transaction_id", "=", normalized.id)],
+            limit=1,
+        )
+        exchange_rate = gross_support / normalized.quantity if normalized.quantity else 0.0
+        values = {
+            "normalized_transaction_id": normalized.id,
+            "asset_id": normalized.asset_id.id,
+            "asset_symbol": normalized.asset_symbol,
+            "measurement_datetime": normalized.timestamp,
+            "pricing_source": _("Odoo payment amount / transaction quantity"),
+            "source_api_provider": "odoo_payment",
+            "exchange_rate": exchange_rate,
+            "quantity": normalized.quantity,
+            "carrying_amount": cost_basis_support,
+            "valuation_status": "needs_review",
+            "principal_market_notes": _(
+                "Derived from Odoo payment support for reviewer convenience. Confirm valuation source, timing, and accounting policy before financial reporting use."
+            ),
+            "reviewer_notes": self._source_reference_for_normalized_transaction(normalized),
+        }
+        if existing:
+            existing.write(values)
+            return existing
+        return self.env["crypto.fair.value.measurement"].create(values)
 
     def action_generate_tax_readiness_outputs(self):
         for record in self:
@@ -987,9 +1087,17 @@ class CryptoAuditEvidencePackage(models.Model):
                 record.write({"normalized_transaction_ids": [(6, 0, normalized.ids)]})
             tax_lines = self.env["crypto.tax.readiness.1099da"]
             form_lines = self.env["crypto.form8949.reconciliation"]
+            fair_value_lines = record.fair_value_measurement_ids
             for tx in record.normalized_transaction_ids:
                 payment_tx = tx.payment_transaction_id
-                gross_support = payment_tx.amount if payment_tx else 0.0
+                gross_support = record._gross_support_for_normalized_transaction(tx)
+                cost_basis_support = record._cost_basis_support_for_normalized_transaction(tx, gross_support)
+                source_reference = record._source_reference_for_normalized_transaction(tx)
+                fair_value_lines |= record._create_or_update_fair_value_measurement(
+                    tx,
+                    gross_support,
+                    cost_basis_support,
+                )
                 ready_for_preparer = bool(
                     tx.timestamp
                     and tx.asset_symbol
@@ -1016,31 +1124,35 @@ class CryptoAuditEvidencePackage(models.Model):
                     "gross_proceeds_support": gross_support,
                     "wallet_source_reference": tx.wallet_address_id.name,
                     "transaction_hash": tx.transaction_hash,
-                    "broker_source_reference": payment_tx.provider_id.name if payment_tx else tx.source_provider,
+                    "broker_source_reference": source_reference,
+                    "cost_basis_support": cost_basis_support,
+                    "federal_income_tax_withheld": 0.0,
                     "status": status,
                     "missing_data_notes": " ".join(missing_notes) or _(
-                        "Core payment fields are populated. Confirm payer/recipient details, reportability, and basis treatment."
+                        "Core payment fields are populated. Cost basis and withholding are derived from Odoo support fields where available and require preparer review."
                     ),
                 })
                 form_lines |= self.env["crypto.form8949.reconciliation"].create({
                     "normalized_transaction_id": tx.id,
                     "description_of_property": "%s digital asset - %s review" % (
-                        tx.asset_symbol or "Crypto",
+                        record._asset_network_label_for_normalized_transaction(tx),
                         dict(tx._fields["transaction_type"].selection).get(tx.transaction_type, tx.transaction_type),
                     ),
+                    "date_acquired": tx.timestamp.date() if tx.timestamp else False,
                     "date_disposed": tx.timestamp.date() if tx.timestamp else False,
                     "proceeds_support": gross_support,
-                    "cost_basis_support": 0.0,
+                    "cost_basis_support": cost_basis_support,
                     "holding_period_support": "needs_review",
-                    "source_links": tx.transaction_hash or tx.source_transaction_id,
+                    "source_links": source_reference,
                     "status": status,
                     "reviewer_notes": _(
-                        "Screening row generated from Odoo crypto payment activity. Confirm whether this is reportable on Form 8949 and add lot-level basis before final use."
+                        "Screening row generated from Odoo crypto payment activity. Date and basis fields are derived from available Odoo support records and require preparer review before final use."
                     ),
                 })
             record.write({
                 "tax_1099da_ids": [(6, 0, tax_lines.ids)],
                 "form8949_ids": [(6, 0, form_lines.ids)],
+                "fair_value_measurement_ids": [(6, 0, fair_value_lines.ids)],
                 "status": "needs_review",
             })
 
@@ -1156,6 +1268,7 @@ class CryptoTaxReadiness1099DA(models.Model):
     transaction_hash = fields.Char()
     broker_source_reference = fields.Char()
     cost_basis_support = fields.Float()
+    federal_income_tax_withheld = fields.Float()
     status = fields.Selection(
         [
             ("draft", "Draft"),

@@ -157,7 +157,7 @@
                                     <td t-esc="tx.reference"/>
                                     <td t-esc="tx.create_date"/>
                                     <td t-esc="tx.partner_id.display_name"/>
-                                    <td t-esc="(tx.currency_id.name if tx.currency_id and tx.currency_id.type == 'crypto' else (tx.crypto_address.wallet_id.currency_id.name if tx.crypto_address and tx.crypto_address.wallet_id else ''))"/>
+                                    <td t-esc="doc._asset_network_label_for_payment_transaction(tx)"/>
                                     <td class="text-end" t-esc="'%.8f' % (tx.crypto_amount_eth or (tx.amount if tx.currency_id and tx.currency_id.type == 'crypto' else 0.0))"/>
                                     <td class="text-end" t-esc="'%.2f' % (tx.amount or 0.0)"/>
                                     <td>
@@ -227,9 +227,10 @@
                     <div class="draft">DRAFT / PREPARER REVIEW COPY - NO READINESS LINES GENERATED</div>
                     <t t-call="crypto_payment_sync.crypto_report_disclaimer"/>
                 </div>
-                <t t-foreach="doc.tax_1099da_ids" t-as="line">
+                    <t t-foreach="doc.tax_1099da_ids" t-as="line">
                     <t t-set="tx" t-value="line.normalized_transaction_id.payment_transaction_id"/>
-                    <t t-set="recipient" t-value="tx.partner_id if tx else False"/>
+                    <t t-set="payer" t-value="tx.partner_id if tx else False"/>
+                    <t t-set="recipient" t-value="doc.company_id.partner_id"/>
                     <div class="irs1099">
                         <table class="no-border">
                             <tr>
@@ -252,17 +253,17 @@
                             <tr>
                                 <td class="left-pane" rowspan="9">
                                     <span class="label">PAYER'S name, street address, city or town, state or province, country, ZIP or foreign postal code</span>
-                                    <span class="value" t-esc="doc.company_id.display_name"/>
-                                    <span class="value" t-esc="doc.company_id.partner_id.contact_address or 'Address not configured'"/>
+                                    <span class="value" t-esc="payer.display_name if payer else 'Needs Review'"/>
+                                    <span class="value" t-esc="payer.contact_address if payer and payer.contact_address else 'Needs Review'"/>
                                     <br/>
                                     <span class="label">PAYER'S TIN</span>
-                                    <span class="value" t-esc="doc.company_id.vat or 'Not configured'"/>
+                                    <span class="value" t-esc="payer.vat if payer and payer.vat else 'Not configured'"/>
                                     <span class="label">RECIPIENT'S TIN</span>
-                                    <span class="value" t-esc="recipient.vat if recipient and recipient.vat else 'Not configured'"/>
+                                    <span class="value" t-esc="doc.company_id.vat or 'Not configured'"/>
                                     <span class="label">RECIPIENT'S name</span>
-                                    <span class="value" t-esc="recipient.display_name if recipient else 'Needs Review'"/>
+                                    <span class="value" t-esc="doc.company_id.display_name"/>
                                     <span class="label">Street address, city or town, state or province, country, ZIP or foreign postal code</span>
-                                    <span class="value" t-esc="recipient.contact_address if recipient and recipient.contact_address else 'Needs Review'"/>
+                                    <span class="value" t-esc="doc.company_id.partner_id.contact_address or 'Address not configured'"/>
                                     <span class="label">Account number</span>
                                     <span class="value" t-esc="tx.reference if tx else line.broker_source_reference or 'Needs Review'"/>
                                 </td>
@@ -282,13 +283,13 @@
                             </tr>
                             <tr>
                                 <td><span class="label">Basis reported</span><span class="value">Preparer Review</span></td>
-                                <td><span class="label">Federal income tax withheld</span><span class="value money">0.00</span></td>
+                                <td><span class="label">Federal income tax withheld</span><span class="value money" t-esc="'%.2f' % (line.federal_income_tax_withheld or 0.0)"/></td>
                             </tr>
                             <tr>
                                 <td colspan="2"><span class="label">Wallet / source address</span><span class="value" t-esc="line.wallet_source_reference or 'Needs Review'"/></td>
                             </tr>
                             <tr>
-                                <td colspan="2"><span class="label">Blockchain transaction hash / source reference</span><span class="value" t-esc="line.transaction_hash or 'Needs Review'"/></td>
+                                <td colspan="2"><span class="label">Blockchain transaction hash / source reference</span><span class="value" t-esc="line.broker_source_reference or line.transaction_hash or 'Needs Review'"/></td>
                             </tr>
                             <tr>
                                 <td><span class="label">Broker/source</span><span class="value" t-esc="line.broker_source_reference or 'Odoo Crypto Payment'"/></td>

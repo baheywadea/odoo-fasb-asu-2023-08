@@ -709,6 +709,8 @@
                 <field name="asset_symbol"/>
                 <field name="quantity"/>
                 <field name="gross_proceeds_support"/>
+                <field name="cost_basis_support"/>
+                <field name="federal_income_tax_withheld"/>
                 <field name="transaction_hash"/>
                 <field name="status"/>
             </list>
@@ -735,6 +737,7 @@
                             <field name="transaction_hash"/>
                             <field name="broker_source_reference"/>
                             <field name="cost_basis_support"/>
+                            <field name="federal_income_tax_withheld"/>
                             <field name="status"/>
                         </group>
                     </group>
