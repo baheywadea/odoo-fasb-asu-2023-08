@@ -1,5 +1,7 @@
 # Demo Outputs Archive
 
+This folder is retained only for historical/reference organization. The canonical demonstration outputs are located at ../../sample_outputs/.
+
 The canonical demonstration output files for this repository are located in [`../../sample_outputs/`](../../sample_outputs/).
 
 This folder is retained only as an archive of previously generated fake demonstration outputs. New documentation links should point to `/sample_outputs`.
