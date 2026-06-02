@@ -117,16 +117,16 @@ The sample workflow is a demonstration pattern. It is designed to support profes
 
 ## Demonstration Outputs
 
-The repository includes sample module-generated outputs in `docs/demo_outputs/`. These files show the source-to-output workflow of the Odoo FASB ASU 2023-08 reference module, including transaction ingestion and normalized ledger evidence, fair-value measurement support, ERP journal-entry support, Form 1099-DA readiness mapping, Form 8949 support, and a CPA/accountant review package.
+The canonical demonstration output files for this repository are located in `sample_outputs/`. These files show the source-to-output workflow of the Odoo FASB ASU 2023-08 reference module, including transaction ingestion and normalized ledger evidence, fair-value measurement support, ERP journal-entry support, Form 1099-DA readiness mapping, Form 8949 support, and a CPA/accountant review package.
 
-These demo outputs are for technical demonstration and professional review readiness only. They are not tax advice, legal advice, audit assurance, IRS filing, certified compliance, proof of government endorsement, proof of U.S. deployment, or a replacement for CPAs, auditors, tax preparers, attorneys, or professional judgment.
+These demo outputs are for technical demonstration and professional review readiness only. They are not tax advice, legal advice, audit assurance, IRS filing, certified compliance, proof of government endorsement, deployment proof, or a replacement for CPAs, auditors, tax preparers, attorneys, or professional judgment.
 
-- [CPA Review Package - MAY 2025.pdf](https://github.com/baheywadea/odoo-fasb-asu-2023-08/blob/main/docs/demo_outputs/CPA%20Review%20Package%20-%20MAY%202025.pdf) - sample CPA/accountant review package.
-- [1099-DA Readiness - MAY 2025.pdf](https://github.com/baheywadea/odoo-fasb-asu-2023-08/blob/main/docs/demo_outputs/1099-DA%20Readiness%20-%20MAY%202025.pdf) - sample Form 1099-DA readiness mapping output.
-- [8949 Support - MAY 2025.pdf](https://github.com/baheywadea/odoo-fasb-asu-2023-08/blob/main/docs/demo_outputs/8949%20Support%20-%20MAY%202025.pdf) - sample Form 8949 support output.
-- [MAY 2025_crypto_journal_lines.csv](https://github.com/baheywadea/odoo-fasb-asu-2023-08/blob/main/docs/demo_outputs/MAY%202025_crypto_journal_lines.csv) - sample ERP journal-line support export.
-- [MAY 2025_crypto_transaction_summary.csv](https://github.com/baheywadea/odoo-fasb-asu-2023-08/blob/main/docs/demo_outputs/MAY%202025_crypto_transaction_summary.csv) - sample transaction summary export.
-- [Exhibit_P1-N_Supplemental_Demonstration_Package.pdf](https://github.com/baheywadea/odoo-fasb-asu-2023-08/blob/main/docs/demo_outputs/Exhibit_P1-N_Supplemental_Demonstration_Package.pdf) - supplemental demonstration package for review context.
+- [CPA Review Package - MAY 2025.pdf](sample_outputs/CPA%20Review%20Package%20-%20MAY%202025.pdf) - sample CPA/accountant review package.
+- [1099-DA Readiness - MAY 2025.pdf](sample_outputs/1099-DA%20Readiness%20-%20MAY%202025.pdf) - sample Form 1099-DA readiness mapping output.
+- [8949 Support - MAY 2025.pdf](sample_outputs/8949%20Support%20-%20MAY%202025.pdf) - sample Form 8949 support output.
+- [MAY 2025_crypto_journal_lines.csv](sample_outputs/MAY%202025_crypto_journal_lines.csv) - sample ERP journal-line support export.
+- [MAY 2025_crypto_transaction_summary.csv](sample_outputs/MAY%202025_crypto_transaction_summary.csv) - sample transaction summary export.
+- [supplemental_demonstration_package.pdf](sample_outputs/supplemental_demonstration_package.pdf) - supplemental demonstration package for review context.
 
 ## Documentation Index
 
